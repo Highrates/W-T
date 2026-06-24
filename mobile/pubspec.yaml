@@ -1,0 +1,36 @@
+name: walk_talk
+description: Walk&Talk — социальные прогулки и тематические события.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^2.3.0
+  liquid_glass_renderer: ^0.2.0-dev.4
+  yandex_maps_mapkit_lite: ^4.36.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+    - assets/icons/nav/
+    - assets/icons/actions/
+    - assets/icons/common/
+    - assets/images/
+    - assets/images/people/
+    - assets/images/cards/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/InterVariable.ttf

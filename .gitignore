@@ -1,0 +1,16 @@
+# Secrets
+mobile/android/local.properties
+mobile/dart_defines.json
+**/.env
+**/.env.*
+
+# Flutter
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+mobile/.idea/
+mobile/*.iml
+
+# OS
+.DS_Store

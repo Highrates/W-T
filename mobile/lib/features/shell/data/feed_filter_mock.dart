@@ -1,0 +1,130 @@
+/// Ось фильтра ленты: формат (как идём) или тема (что делаем).
+enum FeedFilterAxis {
+  format,
+  theme,
+}
+
+/// Горячий чип фильтра ленты.
+class FeedHotFilter {
+  const FeedHotFilter({
+    required this.id,
+    required this.label,
+    required this.axis,
+    required this.hint,
+  });
+
+  final String id;
+  final String label;
+  final FeedFilterAxis axis;
+
+  /// Подсказка организатору: куда отнести событие.
+  final String hint;
+}
+
+/// Таксономия фильтров ленты (без «Все» и без времени).
+///
+/// **Формат:** одна основная ось — пешком или на авто.
+/// **Тема:** взаимоисключающие «ведущие» категории; у события может быть 1–2 темы.
+abstract final class FeedHotFilterMock {
+  static const String walkId = 'walk';
+  static const String driveId = 'drive';
+
+  static const String cultureId = 'culture';
+  static const String natureId = 'nature';
+  static const String foodId = 'food';
+  static const String sportId = 'sport';
+  static const String relaxId = 'relax';
+  static const String socialId = 'social';
+
+  static const List<FeedHotFilter> formatFilters = [
+    FeedHotFilter(
+      id: walkId,
+      label: 'Пешком',
+      axis: FeedFilterAxis.format,
+      hint: 'Маршрут пешком, город, парк',
+    ),
+    FeedHotFilter(
+      id: driveId,
+      label: 'Авто',
+      axis: FeedFilterAxis.format,
+      hint: 'Выезд на машине, carpool',
+    ),
+  ];
+
+  static const List<FeedHotFilter> themeFilters = [
+    FeedHotFilter(
+      id: cultureId,
+      label: 'Культура',
+      axis: FeedFilterAxis.theme,
+      hint: 'Музеи, выставки, архитектура, экскурсии',
+    ),
+    FeedHotFilter(
+      id: natureId,
+      label: 'Природа',
+      axis: FeedFilterAxis.theme,
+      hint: 'Парки, море, горы, терренкур, закаты',
+    ),
+    FeedHotFilter(
+      id: foodId,
+      label: 'Еда',
+      axis: FeedFilterAxis.theme,
+      hint: 'Пикник, кофе, перекус по пути',
+    ),
+    FeedHotFilter(
+      id: sportId,
+      label: 'Спорт',
+      axis: FeedFilterAxis.theme,
+      hint: 'Йога, бег, тренировки, активный темп',
+    ),
+    FeedHotFilter(
+      id: relaxId,
+      label: 'Отдых',
+      axis: FeedFilterAxis.theme,
+      hint: 'Баня, spa, неспешный формат без спорта',
+    ),
+    FeedHotFilter(
+      id: socialId,
+      label: 'Общение',
+      axis: FeedFilterAxis.theme,
+      hint: 'Просто погулять и пообщаться, без жёсткой темы',
+    ),
+  ];
+
+  static List<FeedHotFilter> get all => [
+        ...formatFilters,
+        ...themeFilters,
+      ];
+
+  static FeedHotFilter? byId(String id) {
+    for (final filter in all) {
+      if (filter.id == id) return filter;
+    }
+    return null;
+  }
+
+  static bool isFormatId(String id) =>
+      formatFilters.any((filter) => filter.id == id);
+
+  static bool isThemeId(String id) =>
+      themeFilters.any((filter) => filter.id == id);
+
+  /// Пустой набор — вся лента. Внутри оси — ИЛИ, между осями — И.
+  static bool matches({
+    required Set<String> selectedIds,
+    required List<String> formatIds,
+    required List<String> themeIds,
+  }) {
+    if (selectedIds.isEmpty) return true;
+
+    final formats = selectedIds.where(isFormatId).toSet();
+    final themes = selectedIds.where(isThemeId).toSet();
+
+    if (formats.isNotEmpty && !formatIds.any(formats.contains)) {
+      return false;
+    }
+    if (themes.isNotEmpty && !themeIds.any(themes.contains)) {
+      return false;
+    }
+    return true;
+  }
+}
