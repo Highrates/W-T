@@ -193,7 +193,7 @@ location geography(Point, 4326),  -- центр / старт
 | Фаза | Карты |
 |------|--------|
 | **Сейчас** | MapKit lite, моки с координатами, репозитории, заглушка без ключа |
-| **M1** | NestJS geo-модуль, suggest/geocode, wizard с точками |
+| **M1** | NestJS geo-модуль (`/api/geo/suggest`, `/api/geo/geocode`), wizard: поиск + MapKit tap |
 | **M2** | bbox-лента на карте, polyline маршрута, пешая маршрутизация (сервер или MapKit full) |
 
 ---
@@ -202,4 +202,4 @@ location geography(Point, 4326),  -- центр / старт
 
 | Дата | Изменение |
 |------|-----------|
-| 2026-06-10 | Первая версия: split client/server, модели geo, MapKit lite scaffold |
+| 2026-07-10 | NestJS geo API (suggest + reverse geocode), mobile GeoRepository, MapKit tap в wizard |

@@ -1,11 +1,14 @@
 import '../../../shared/models/geo_point.dart';
 import '../../../shared/models/map_occurrence_pin.dart';
-import '../../event/data/mock_event_repository.dart';
+import '../../event/data/event_repository.dart';
+import '../../shell/domain/feed_query.dart';
 import 'map_repository.dart';
 
 /// Моки пинов до `GET /occurrences?bbox=…` на API.
 class MockMapRepository implements MapRepository {
-  const MockMapRepository();
+  MockMapRepository(this._events);
+
+  final EventRepository _events;
 
   /// Координаты на суше (центр Сочи, парки, набережная — не в море).
   static const _centers = <String, GeoPoint>{
@@ -19,9 +22,9 @@ class MockMapRepository implements MapRepository {
   };
 
   @override
-  List<MapOccurrencePin> getOccurrencePins() {
+  List<MapOccurrencePin> getOccurrencePins({FeedQuery? query}) {
     return [
-      for (final card in eventRepository.getFeed())
+      for (final card in _events.getFeed(query: query))
         if (_centers[card.id] != null)
           MapOccurrencePin(
             occurrenceId: card.id,
@@ -33,5 +36,3 @@ class MockMapRepository implements MapRepository {
     ];
   }
 }
-
-const mapRepository = MockMapRepository();

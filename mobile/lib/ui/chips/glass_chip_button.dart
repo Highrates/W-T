@@ -18,6 +18,9 @@ class GlassChipButton extends StatelessWidget {
     this.labelColor,
     this.iconColor,
     this.selected = false,
+    this.selectedShellColor,
+    this.selectedForegroundColor,
+    this.showCheckmarkWhenSelected = false,
     this.iconOnly = false,
     this.contentPadding,
     this.simulatedGlass = false,
@@ -29,6 +32,15 @@ class GlassChipButton extends StatelessWidget {
   final Color? labelColor;
   final Color? iconColor;
   final bool selected;
+
+  /// Заливка выбранного чипа (например, `colors.blue` в wizard).
+  final Color? selectedShellColor;
+
+  /// Текст/иконка на кастомной заливке.
+  final Color? selectedForegroundColor;
+
+  /// Галочка слева от подписи в выбранном состоянии.
+  final bool showCheckmarkWhenSelected;
 
   /// Только иконка без подписи (например, кнопка фильтра).
   final bool iconOnly;
@@ -52,6 +64,12 @@ class GlassChipButton extends StatelessWidget {
     vertical: AppSpacing.s8,
   );
 
+  /// Чипы wizard создания маршрута.
+  static const EdgeInsets wizardPadding = EdgeInsets.symmetric(
+    horizontal: AppSpacing.s16,
+    vertical: AppSpacing.s12,
+  );
+
   static const double iconSize = 18;
   static const double _textLineHeight = 20;
 
@@ -67,13 +85,18 @@ class GlassChipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final useCustomSelected = selected && selectedShellColor != null;
     final textColor = labelColor ??
-        (selected ? colors.text : AppGlassTokens.chipText);
+        (useCustomSelected
+            ? (selectedForegroundColor ?? colors.onImagePrimary)
+            : (selected ? colors.text : AppGlassTokens.chipText));
     final leadingColor = iconColor ?? textColor;
 
-    final shellColor = selected
-        ? AppGlassTokens.navActiveIndicator
-        : (simulatedGlass ? AppGlassTokens.navBarFill : Colors.transparent);
+    final shellColor = useCustomSelected
+        ? selectedShellColor!
+        : (selected
+            ? AppGlassTokens.navActiveIndicator
+            : (simulatedGlass ? AppGlassTokens.navBarFill : Colors.transparent));
 
     final content = Material(
       color: shellColor,
@@ -92,6 +115,10 @@ class GlassChipButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                if (showCheckmarkWhenSelected && selected) ...[
+                  Icon(Icons.check, size: iconSize, color: leadingColor),
+                  if (!iconOnly) const SizedBox(width: AppSpacing.gap6),
+                ],
                 if (icon != null) ...[
                   SizedBox(
                     width: iconSize,

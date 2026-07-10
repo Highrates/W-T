@@ -441,7 +441,7 @@ class _NavTrioTabsState extends State<_NavTrioTabs> {
 
   static int _indexFor(AppNavTab tab) => switch (tab) {
         AppNavTab.people => 0,
-        AppNavTab.cards => 1,
+        AppNavTab.feed => 1,
         AppNavTab.map => 2,
       };
 
@@ -487,11 +487,11 @@ class _NavTrioTabsState extends State<_NavTrioTabs> {
               _NavTabSlot(
                 lineAsset: AppBottomNavBar._navIcon('feed', active: false),
                 boldAsset: AppBottomNavBar._navIcon('feed', active: true),
-                tab: AppNavTab.cards,
+                tab: AppNavTab.feed,
                 currentTab: widget.currentTab,
                 iconColor: widget.iconColor,
                 activeIconColor: widget.activeIconColor,
-                onTap: () => widget.onTabChanged(AppNavTab.cards),
+                onTap: () => widget.onTabChanged(AppNavTab.feed),
               ),
               const SizedBox(width: AppBottomNavBar.trioGap),
               _NavTabSlot(

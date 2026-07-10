@@ -9,7 +9,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Walk&amp;Talk</string>
+	<string>JOOW</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -30,6 +30,10 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Нужно для отладки приложения с Mac (Flutter / Dart VM).</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Чтобы добавить фото обложки маршрута из галереи.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Чтобы сделать фото обложки маршрута камерой.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_dartVmService._tcp</string>

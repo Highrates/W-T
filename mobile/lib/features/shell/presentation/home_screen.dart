@@ -17,7 +17,7 @@ class HomeScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            Text('Walk&Talk', style: context.text18_600),
+            Text('Выходи', style: context.text18_600),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Социальные прогулки и события',

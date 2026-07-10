@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/repository_providers.dart';
+import '../../../shared/models/user_profile.dart';
 import '../../../ui/navigation/app_bottom_nav_bar.dart';
 import '../../profile/presentation/open_user_profile.dart';
 import '../data/people_mock.dart';
 import 'widgets/people_profile_overlay.dart';
 
 /// Вкладка «Люди»: вертикальный свайп по фото + мета внизу.
-class PeopleScreen extends StatefulWidget {
+class PeopleScreen extends ConsumerStatefulWidget {
   const PeopleScreen({super.key});
 
   @override
-  State<PeopleScreen> createState() => _PeopleScreenState();
+  ConsumerState<PeopleScreen> createState() => _PeopleScreenState();
 }
 
-class _PeopleScreenState extends State<PeopleScreen>
+class _PeopleScreenState extends ConsumerState<PeopleScreen>
     with AutomaticKeepAliveClientMixin {
   late final PageController _pageController;
 
@@ -39,7 +42,10 @@ class _PeopleScreenState extends State<PeopleScreen>
         AppBottomNavBar.barHeight +
         AppBottomNavBar.barBottomMinimum;
 
-    final profiles = PeopleMock.profiles;
+    final profiles = [
+      for (final id in PeopleMock.profileIds)
+        ref.read(userProfileRepositoryProvider).getProfile(id),
+    ].whereType<UserProfile>().toList();
 
     if (profiles.isEmpty) {
       return Center(
@@ -82,12 +88,12 @@ class _PeopleScreenState extends State<PeopleScreen>
 class _ProfilePhoto extends StatelessWidget {
   const _ProfilePhoto({required this.profile});
 
-  final PeopleProfile profile;
+  final UserProfile profile;
 
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      profile.photoAsset,
+      profile.heroPhotoAssets.first,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,

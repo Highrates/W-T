@@ -5,7 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../shared/going_avatar_entries.dart';
-import '../../../../shared/models/walk_card_participant.dart';
+import '../../../../shared/models/event_participant.dart';
 import '../../../../ui/avatars/tappable_avatar.dart';
 import '../../../cards/presentation/widgets/walk_card_participants_sheet.dart';
 import '../../../profile/presentation/open_user_profile.dart';
@@ -24,7 +24,7 @@ class EventParticipantsSection extends StatelessWidget {
   final String goingLabel;
   final String organizerId;
   final String organizerAvatarAsset;
-  final List<WalkCardParticipant> participants;
+  final List<EventParticipant> participants;
   final double avatarSize;
 
   @override

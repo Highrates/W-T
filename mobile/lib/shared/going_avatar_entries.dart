@@ -1,4 +1,4 @@
-import 'models/walk_card_participant.dart';
+import 'models/event_participant.dart';
 
 /// Аватар в ленте участников (организатор + принятые).
 class GoingAvatarEntry {
@@ -14,13 +14,13 @@ class GoingAvatarEntry {
 List<GoingAvatarEntry> buildGoingAvatarEntries({
   required String organizerId,
   required String organizerAvatarAsset,
-  required List<WalkCardParticipant> participants,
+  required List<EventParticipant> participants,
 }) {
   final seen = <String>{};
   final entries = <GoingAvatarEntry>[];
 
   void add(String userId, String avatarAsset) {
-    if (seen.add(avatarAsset)) {
+    if (seen.add(userId)) {
       entries.add(
         GoingAvatarEntry(userId: userId, avatarAsset: avatarAsset),
       );

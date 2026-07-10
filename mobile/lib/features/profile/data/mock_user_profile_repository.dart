@@ -1,6 +1,6 @@
 import '../../../shared/models/profile_event_preview.dart';
-import '../../../shared/models/user_profile_data.dart';
-import '../../../shared/models/walk_card_data.dart';
+import '../../../shared/models/user_profile.dart';
+import '../../../shared/models/event_card_data.dart';
 import '../../cards/data/cards_feed_mock.dart';
 import 'user_profile_repository.dart';
 
@@ -15,7 +15,7 @@ class MockUserProfileRepository implements UserProfileRepository {
   static const String _cards = 'assets/images/cards';
 
   static ProfileEventPreview _previewFromCard(
-    WalkCardData card, {
+    EventCardData card, {
     required bool isPast,
   }) {
     return ProfileEventPreview(
@@ -29,11 +29,12 @@ class MockUserProfileRepository implements UserProfileRepository {
     );
   }
 
-  static final Map<String, UserProfileData> _profiles = {
-    'ivan': UserProfileData(
+  static final Map<String, UserProfile> _profiles = {
+    'ivan': UserProfile(
       id: 'ivan',
       name: 'Иван Ургант',
       avatarAsset: '$_people/01.jpg',
+      isOrganizer: true,
       photoAssets: [
         '$_people/01.jpg',
         '$_cards/08.jpg',
@@ -102,10 +103,11 @@ class MockUserProfileRepository implements UserProfileRepository {
         ),
       ],
     ),
-    'yulia': UserProfileData(
+    'yulia': UserProfile(
       id: 'yulia',
       name: 'Анна Малиновская',
       avatarAsset: '$_people/02.jpg',
+      isOrganizer: true,
       photoAssets: ['$_people/02.jpg', '$_cards/06.jpg'],
       city: 'Сочи',
       bio: 'Спокойные маршруты, кофе и фото по пути',
@@ -154,27 +156,30 @@ class MockUserProfileRepository implements UserProfileRepository {
         ),
       ],
     ),
-    'maria': const UserProfileData(
+    'maria': const UserProfile(
       id: 'maria',
       name: 'Мария Козлова',
       avatarAsset: '$_people/03.jpg',
+      isOrganizer: false,
       photoAssets: ['$_people/03.jpg', '$_cards/07.jpg'],
       city: 'Сочи',
       bio: 'Люблю Terrenkur и пикники у моря',
       interestTags: ['Пешком', 'Пикники'],
     ),
-    'alexey': const UserProfileData(
+    'alexey': const UserProfile(
       id: 'alexey',
       name: 'Алексей Петров',
       avatarAsset: '$_people/04.jpg',
+      isOrganizer: false,
       city: 'Сочи',
       bio: 'Готов к длинным маршрутам и спонтанным прогулкам',
       interestTags: ['Пешком'],
     ),
-    'anna': const UserProfileData(
+    'anna': const UserProfile(
       id: 'anna',
       name: 'Анна Смирнова',
       avatarAsset: '$_people/05.jpg',
+      isOrganizer: true,
       city: 'Сочи',
       bio: 'Авто-маршруты и тематические встречи',
       isVerified: true,
@@ -221,10 +226,11 @@ class MockUserProfileRepository implements UserProfileRepository {
         ),
       ],
     ),
-    'solomon': UserProfileData(
+    'solomon': UserProfile(
       id: 'solomon',
       name: 'Соломон Волков',
       avatarAsset: '$_people/04.jpg',
+      isOrganizer: true,
       city: 'Сочи',
       bio: 'Большие компании, пикники и длинные маршруты',
       interestTags: const ['Пешком', 'Пикник'],
@@ -274,8 +280,46 @@ class MockUserProfileRepository implements UserProfileRepository {
     ),
   };
 
-  @override
-  UserProfileData? getProfile(String userId) => _profiles[userId];
-}
+  static const _goingEvents = <String, List<ProfileEventPreview>>{
+    'yulia': [
+      ProfileEventPreview(
+        eventId: 'terrenkur',
+        title: 'Terrenkur на рассвете',
+        coverAsset: '$_cards/05.jpg',
+        whenLabel: 'Сб 07:00',
+        goingLabel: '12/15 идут',
+      ),
+      ProfileEventPreview(
+        eventId: 'going-yulia-1',
+        title: 'Пикник в парке Ривьера',
+        coverAsset: '$_cards/03.jpg',
+        whenLabel: 'Вс 14:00',
+        goingLabel: '5/8 идут',
+      ),
+    ],
+  };
 
-const userProfileRepository = MockUserProfileRepository();
+  static const _goingPastEvents = <String, List<ProfileEventPreview>>{
+    'yulia': [
+      ProfileEventPreview(
+        eventId: 'going-past-yulia-1',
+        title: 'Набережная и закат',
+        coverAsset: '$_cards/08.jpg',
+        whenLabel: '15 окт',
+        goingLabel: '8/8 идут',
+        isPast: true,
+      ),
+    ],
+  };
+
+  @override
+  UserProfile? getProfile(String userId) => _profiles[userId];
+
+  @override
+  List<ProfileEventPreview> getGoingEvents(String userId) =>
+      _goingEvents[userId] ?? const [];
+
+  @override
+  List<ProfileEventPreview> getGoingPastEvents(String userId) =>
+      _goingPastEvents[userId] ?? const [];
+}

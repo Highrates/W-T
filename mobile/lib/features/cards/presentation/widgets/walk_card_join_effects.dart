@@ -6,7 +6,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
-import '../../../../shared/models/walk_card_join_status.dart';
+import '../../../../shared/models/event_join_status.dart';
 
 /// Раскладка блока присоединения.
 enum WalkJoinSectionLayout {
@@ -21,18 +21,19 @@ enum WalkJoinSectionLayout {
 class WalkCardJoinSection extends StatefulWidget {
   const WalkCardJoinSection({
     super.key,
-    required this.initialStatus,
-    this.onJoinSubmitted,
+    required this.status,
+    this.isSubmitting = false,
+    this.onJoinTap,
     this.layout = WalkJoinSectionLayout.card,
     this.whenSlot,
     this.showBalloons = true,
     this.onSuccessBannerChanged,
-    this.onJoinStatusChanged,
     this.eventFooterChat,
   });
 
-  final WalkCardJoinStatus initialStatus;
-  final VoidCallback? onJoinSubmitted;
+  final EventJoinStatus status;
+  final bool isSubmitting;
+  final VoidCallback? onJoinTap;
   final WalkJoinSectionLayout layout;
 
   /// Слот даты/времени слева ([WalkJoinSectionLayout.eventFooter]).
@@ -41,9 +42,6 @@ class WalkCardJoinSection extends StatefulWidget {
 
   /// Баннер успеха рисуется снаружи (над glass-футером на [EventScreen]).
   final ValueChanged<bool>? onSuccessBannerChanged;
-
-  /// Смена статуса заявки (чат маршрута и др. на [EventScreen]).
-  final ValueChanged<WalkCardJoinStatus>? onJoinStatusChanged;
 
   /// Чат перед CTA ([WalkJoinSectionLayout.eventFooter]).
   final Widget? eventFooterChat;
@@ -59,8 +57,6 @@ class WalkCardJoinSection extends StatefulWidget {
 
 class _WalkCardJoinSectionState extends State<WalkCardJoinSection>
     with TickerProviderStateMixin {
-  late WalkCardJoinStatus _status;
-  bool _submitting = false;
   bool _showBanner = false;
   int _balloonBurstId = 0;
 
@@ -69,29 +65,23 @@ class _WalkCardJoinSectionState extends State<WalkCardJoinSection>
   @override
   void initState() {
     super.initState();
-    _status = widget.initialStatus;
     _pendingPulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     );
-    if (_status == WalkCardJoinStatus.pending) {
-      _pendingPulse.repeat(reverse: true);
-    }
+    _syncPendingPulse();
   }
 
   @override
   void didUpdateWidget(WalkCardJoinSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialStatus != widget.initialStatus &&
-        _status == WalkCardJoinStatus.canJoin) {
-    _status = widget.initialStatus;
-    _syncPendingPulse();
-    if (widget.layout == WalkJoinSectionLayout.eventFooter) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _notifyJoinStatus(_status);
-      });
+    if (oldWidget.status != widget.status) {
+      if (oldWidget.status == EventJoinStatus.canJoin &&
+          widget.status == EventJoinStatus.pending) {
+        _onJoinSucceeded();
+      }
+      _syncPendingPulse();
     }
-  }
   }
 
   @override
@@ -100,8 +90,22 @@ class _WalkCardJoinSectionState extends State<WalkCardJoinSection>
     super.dispose();
   }
 
+  void _onJoinSucceeded() {
+    _updateSuccessBanner(true);
+    setState(() {
+      _showBanner = true;
+      _balloonBurstId++;
+    });
+
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _updateSuccessBanner(false);
+      setState(() => _showBanner = false);
+    });
+  }
+
   void _syncPendingPulse() {
-    if (_status == WalkCardJoinStatus.pending) {
+    if (widget.status == EventJoinStatus.pending) {
       if (!_pendingPulse.isAnimating) {
         _pendingPulse.repeat(reverse: true);
       }
@@ -111,29 +115,13 @@ class _WalkCardJoinSectionState extends State<WalkCardJoinSection>
     }
   }
 
-  Future<void> _onJoinTap() async {
-    if (_status != WalkCardJoinStatus.canJoin || _submitting) return;
-
-    setState(() => _submitting = true);
-    await Future<void>.delayed(const Duration(milliseconds: 420));
-    if (!mounted) return;
-
-    _updateSuccessBanner(true);
-    setState(() {
-      _submitting = false;
-      _status = WalkCardJoinStatus.pending;
-      _showBanner = true;
-      _balloonBurstId++;
-    });
-    _notifyJoinStatus(_status);
-    _syncPendingPulse();
-    widget.onJoinSubmitted?.call();
-
-    Future<void>.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      _updateSuccessBanner(false);
-      setState(() => _showBanner = false);
-    });
+  void _handleJoinTap() {
+    if (widget.status != EventJoinStatus.canJoin ||
+        widget.isSubmitting ||
+        widget.onJoinTap == null) {
+      return;
+    }
+    widget.onJoinTap!();
   }
 
   void _updateSuccessBanner(bool visible) {
@@ -142,31 +130,27 @@ class _WalkCardJoinSectionState extends State<WalkCardJoinSection>
     }
   }
 
-  void _notifyJoinStatus(WalkCardJoinStatus status) {
-    widget.onJoinStatusChanged?.call(status);
-  }
-
-  String get _label => switch (_status) {
-        WalkCardJoinStatus.canJoin => 'Присоединиться!',
-        WalkCardJoinStatus.pending => 'Ожидаем организатора',
-        WalkCardJoinStatus.approved => 'Вы в списке',
-        WalkCardJoinStatus.full => 'Мест нет',
+  String get _label => switch (widget.status) {
+        EventJoinStatus.canJoin => 'Присоединиться!',
+        EventJoinStatus.pending => 'Ожидаем организатора',
+        EventJoinStatus.approved => 'Вы в списке',
+        EventJoinStatus.full => 'Мест нет',
       };
 
   bool get _isEnabled =>
-      _status == WalkCardJoinStatus.canJoin && !_submitting;
+      widget.status == EventJoinStatus.canJoin && !widget.isSubmitting;
 
   Widget _joinButton(AppThemeColors colors) {
     final isEventFooter = widget.layout == WalkJoinSectionLayout.eventFooter;
-    final isPending = _status == WalkCardJoinStatus.pending;
+    final isPending = widget.status == EventJoinStatus.pending;
 
     return _JoinButton(
       label: _label,
       colors: colors,
-      isLoading: _submitting,
+      isLoading: widget.isSubmitting,
       isPending: isPending,
       pendingPulse: _pendingPulse,
-      onPressed: _isEnabled ? _onJoinTap : null,
+      onPressed: _isEnabled ? _handleJoinTap : null,
       expand: widget.layout == WalkJoinSectionLayout.card,
       backgroundColor:
           isEventFooter ? Colors.transparent : colors.secondBackground,

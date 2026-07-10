@@ -1,45 +1,45 @@
 import '../../../features/shell/data/feed_filter_mock.dart';
-import '../../../shared/models/walk_card_data.dart';
-import '../../../shared/models/walk_card_join_status.dart';
-import '../../../shared/models/walk_card_participant.dart';
-import '../../../shared/models/walk_card_route_metric.dart';
+import '../../../shared/models/event_card_data.dart';
+import '../../../shared/models/event_join_status.dart';
+import '../../../shared/models/event_participant.dart';
+import '../../../shared/models/event_route_metric.dart';
 
 /// Моки ленты cards. Фото — [assets/images/cards/](../../../assets/images/cards/).
 abstract final class CardsFeedMock {
   static const String _cards = 'assets/images/cards';
   static const String _people = 'assets/images/people';
 
-  static const _p1 = WalkCardParticipant(
+  static const _p1 = EventParticipant(
     id: 'ivan',
     name: 'Иван Ургант',
     avatarAsset: '$_people/01.jpg',
   );
-  static const _p2 = WalkCardParticipant(
+  static const _p2 = EventParticipant(
     id: 'yulia',
     name: 'Анна Малиновская',
     avatarAsset: '$_people/02.jpg',
   );
-  static const _p3 = WalkCardParticipant(
+  static const _p3 = EventParticipant(
     id: 'maria',
     name: 'Мария Козлова',
     avatarAsset: '$_people/03.jpg',
   );
-  static const _p4 = WalkCardParticipant(
+  static const _p4 = EventParticipant(
     id: 'alexey',
     name: 'Алексей Петров',
     avatarAsset: '$_people/04.jpg',
   );
-  static const _p5 = WalkCardParticipant(
+  static const _p5 = EventParticipant(
     id: 'anna',
     name: 'Анна Смирнова',
     avatarAsset: '$_people/05.jpg',
   );
 
-  static const WalkCardData sample = WalkCardData(
+  static const EventCardData sample = EventCardData(
     id: 'dragons',
     whenLabel: 'Сегодня 13:15',
     goingLabel: '5/7 идут',
-    routeMetric: WalkCardRouteMetric.points,
+    routeMetric: EventRouteMetric.points,
     routeMetricLabel: '8 точек',
     participants: [_p1, _p2, _p3, _p4, _p5],
     coverAssets: [
@@ -59,13 +59,13 @@ abstract final class CardsFeedMock {
     themeIds: [FeedHotFilterMock.cultureId, FeedHotFilterMock.foodId],
   );
 
-  static const List<WalkCardData> feed = [
+  static const List<EventCardData> feed = [
     sample,
-    WalkCardData(
+    EventCardData(
       id: 'terrenkur',
       isWhenHidden: true,
       goingLabel: '3/10 идут',
-      routeMetric: WalkCardRouteMetric.points,
+      routeMetric: EventRouteMetric.points,
       routeMetricLabel: '12 точек',
       participants: [_p2, _p5],
       coverAssets: [
@@ -82,11 +82,11 @@ abstract final class CardsFeedMock {
       formatIds: [FeedHotFilterMock.walkId],
       themeIds: [FeedHotFilterMock.natureId, FeedHotFilterMock.foodId],
     ),
-    WalkCardData(
+    EventCardData(
       id: 'sunset',
       whenLabel: 'Сб 18:30',
       goingLabel: '7/8 идут',
-      routeMetric: WalkCardRouteMetric.distance,
+      routeMetric: EventRouteMetric.distance,
       routeMetricLabel: '5,2 км',
       participants: [_p1, _p2, _p3, _p4, _p5, _p4, _p3],
       coverAssets: [
@@ -102,13 +102,13 @@ abstract final class CardsFeedMock {
       tags: ['Сочи 🌴', 'Компания', 'Закат'],
       formatIds: [FeedHotFilterMock.walkId],
       themeIds: [FeedHotFilterMock.natureId, FeedHotFilterMock.socialId],
-      joinStatus: WalkCardJoinStatus.approved,
+      joinStatus: EventJoinStatus.approved,
     ),
-    WalkCardData(
+    EventCardData(
       id: 'yoga-park',
       whenLabel: 'Вс 10:00',
       goingLabel: '4/12 идут',
-      routeMetric: WalkCardRouteMetric.distance,
+      routeMetric: EventRouteMetric.distance,
       routeMetricLabel: '3,1 км',
       participants: [_p3, _p4],
       coverAssets: [
@@ -124,11 +124,11 @@ abstract final class CardsFeedMock {
       formatIds: [FeedHotFilterMock.walkId],
       themeIds: [FeedHotFilterMock.sportId, FeedHotFilterMock.natureId],
     ),
-    WalkCardData(
+    EventCardData(
       id: 'sochi-drive',
       whenLabel: 'Вс 9:00',
       goingLabel: '2/5 идут',
-      routeMetric: WalkCardRouteMetric.points,
+      routeMetric: EventRouteMetric.points,
       routeMetricLabel: '4 точки',
       participants: [_p1],
       coverAssets: ['$_cards/06.jpg'],
@@ -142,11 +142,11 @@ abstract final class CardsFeedMock {
       formatIds: [FeedHotFilterMock.driveId],
       themeIds: [FeedHotFilterMock.natureId],
     ),
-    WalkCardData(
+    EventCardData(
       id: 'banya-chill',
       whenLabel: 'Сб 16:00',
       goingLabel: '6/8 идут',
-      routeMetric: WalkCardRouteMetric.distance,
+      routeMetric: EventRouteMetric.distance,
       routeMetricLabel: '1,2 км',
       participants: [_p2, _p3, _p5],
       coverAssets: ['$_cards/07.jpg'],
@@ -159,11 +159,11 @@ abstract final class CardsFeedMock {
       formatIds: [FeedHotFilterMock.walkId],
       themeIds: [FeedHotFilterMock.relaxId, FeedHotFilterMock.socialId],
     ),
-    WalkCardData(
+    EventCardData(
       id: 'text-tea-walk',
       whenLabel: 'Чт 17:30',
       goingLabel: '2/6 идут',
-      routeMetric: WalkCardRouteMetric.distance,
+      routeMetric: EventRouteMetric.distance,
       routeMetricLabel: '3,5 км',
       participants: [_p3],
       coverAssets: [],

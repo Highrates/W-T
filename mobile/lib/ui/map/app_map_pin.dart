@@ -7,6 +7,9 @@ enum AppMapPinStyle {
 
   /// Веха маршрута: номер или фото + номер (страница event).
   routeWaypoint,
+
+  /// Черновик точки при tap на карте (wizard).
+  draftSelection,
 }
 
 /// Пин на карте Walk&Talk.
@@ -18,6 +21,7 @@ class AppMapPin {
     this.style = AppMapPinStyle.eventPhoto,
     this.imageAsset,
     this.waypointIndex,
+    this.draggable = false,
   });
 
   final GeoPoint location;
@@ -26,4 +30,7 @@ class AppMapPin {
   final AppMapPinStyle style;
   final String? imageAsset;
   final int? waypointIndex;
+
+  /// Долгое нажатие + drag (MapKit). См. [MapObjectDragListener].
+  final bool draggable;
 }

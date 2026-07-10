@@ -206,6 +206,33 @@ abstract final class MapMarkerRenderer {
     );
   }
 
+  static Future<ui.Image> draftSelectionMarker({double size = 56}) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final center = Offset(size / 2, size / 2);
+    final radius = size / 2 - 2;
+
+    canvas.drawCircle(
+      center + const Offset(0, 2),
+      radius - 1,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.18)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+
+    canvas.drawCircle(center, radius, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      center,
+      radius - 3,
+      Paint()..color = AppPalette.blue,
+    );
+
+    return _applyCircleAlphaMask(
+      await recorder.endRecording().toImage(size.ceil(), size.ceil()),
+      size,
+    );
+  }
+
   static double markerScale(
     double markerSize, {
     required bool isEventPhoto,

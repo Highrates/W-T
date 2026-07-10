@@ -57,7 +57,6 @@ Future<void> showEventRouteMapSheet({
             child: EventRouteMap(
               points: points,
               height: mapHeight,
-              deferPlatformView: false,
             ),
           ),
           SizedBox(height: MediaQuery.paddingOf(sheetContext).bottom + 12),

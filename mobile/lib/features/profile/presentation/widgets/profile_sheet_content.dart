@@ -4,10 +4,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../shared/models/profile_event_preview.dart';
-import '../../../../shared/models/user_profile_data.dart';
+import '../../../../shared/models/user_profile.dart';
 import '../../../../ui/icons/location_icon.dart';
 import '../../../event/presentation/widgets/event_sheet_right_inset.dart';
-import '../../../people/data/people_mock.dart';
 import 'profile_event_preview_card.dart';
 
 class ProfileSheetContent extends StatelessWidget {
@@ -20,7 +19,7 @@ class ProfileSheetContent extends StatelessWidget {
     required this.onPastEventTap,
   });
 
-  final UserProfileData profile;
+  final UserProfile profile;
   final ScrollController scrollController;
   final double bottomPadding;
   final ValueChanged<String> onUpcomingEventTap;
@@ -93,7 +92,7 @@ class ProfileSheetContent extends StatelessWidget {
           const EventSheetRightInset(child: SizedBox(height: AppSpacing.s4)),
           EventSheetRightInset(
             child: Text(
-              PeopleProfile.openEventsLabel(upcoming.length),
+              UserProfile.openEventsLabel(upcoming.length),
               style: AppTextStyles.text13_400(color: colors.caption),
             ),
           ),

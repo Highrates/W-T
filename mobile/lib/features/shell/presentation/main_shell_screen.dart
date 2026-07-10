@@ -1,32 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/repository_providers.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../ui/navigation/app_bottom_nav_bar.dart';
 import '../../../ui/navigation/app_menu_sheet.dart';
 import '../../../ui/navigation/app_nav_tab.dart';
 import '../../cards/presentation/cards_screen.dart';
-import '../../profile/data/mock_user_profile_repository.dart';
-import '../../profile/presentation/open_user_profile.dart';
 import '../../map/presentation/map_screen.dart';
 import '../../people/presentation/people_screen.dart';
-import '../data/location_filter_mock.dart';
+import '../../profile/presentation/open_my_profile.dart';
+import '../application/feed_query_controller.dart';
 import '../../../core/map/map_kit_visibility.dart';
 import 'widgets/shell_location_filter_row.dart';
 
 /// Оболочка приложения с нижней навигацией (liquid glass).
-class MainShellScreen extends StatefulWidget {
+class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({super.key});
 
   @override
-  State<MainShellScreen> createState() => _MainShellScreenState();
+  ConsumerState<MainShellScreen> createState() => _MainShellScreenState();
 }
 
-class _MainShellScreenState extends State<MainShellScreen> {
-  AppNavTab _tab = AppNavTab.cards;
-
-  Set<String> _feedHotFilterIds = {};
-
-  LocationFilterOption _location = LocationFilterMock.defaultCity;
+class _MainShellScreenState extends ConsumerState<MainShellScreen> {
+  AppNavTab _tab = AppNavTab.feed;
 
   var _feedNavCompact = false;
 
@@ -34,17 +31,19 @@ class _MainShellScreenState extends State<MainShellScreen> {
   var _mapLayerInserted = false;
 
   double get _navScale =>
-      _tab == AppNavTab.cards && _feedNavCompact
+      _tab == AppNavTab.feed && _feedNavCompact
           ? AppBottomNavBar.feedScrollCompactScale
           : 1;
 
   @override
   Widget build(BuildContext context) {
     final safeBottom = MediaQuery.paddingOf(context).bottom;
-    final currentUser =
-        userProfileRepository.getProfile(userProfileRepository.currentUserId);
+    final profiles = ref.read(userProfileRepositoryProvider);
+    final currentUser = profiles.getProfile(profiles.currentUserId);
     final profileAvatar = currentUser?.avatarAsset ??
         'assets/images/people/02.jpg';
+    final query = ref.watch(feedQueryControllerProvider);
+    final queryController = ref.read(feedQueryControllerProvider.notifier);
 
     return Scaffold(
       body: LayoutBuilder(
@@ -55,14 +54,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
               children: [
                 if (_tab == AppNavTab.people)
                   const Positioned.fill(child: PeopleScreen()),
-                if (_tab == AppNavTab.cards)
+                if (_tab == AppNavTab.feed)
                   Positioned.fill(
                     child: CardsScreen(
-                      hotFilterIds: _feedHotFilterIds,
-                      onHotFilterToggle: _toggleFeedHotFilter,
-                      location: _location,
-                      onLocationChanged: _onLocationChanged,
-                      onFilterTap: _onFilterTap,
                       onNavCompactChanged: _onFeedNavCompactChanged,
                     ),
                   ),
@@ -72,12 +66,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                       visible: _tab == AppNavTab.map,
                       maintainState: true,
                       maintainAnimation: true,
-                      child: MapScreen(
-                        location: _location,
-                        onLocationChanged: _onLocationChanged,
-                        onFilterTap: _onFilterTap,
-                        filterActive: _feedHotFilterIds.isNotEmpty,
-                      ),
+                      child: const MapScreen(),
                     ),
                   ),
                 ...AppBottomNavBar.buildNavShadowLayer(
@@ -108,10 +97,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
                         padding: const EdgeInsets.only(top: AppSpacing.s8),
                         child: ShellLocationFilterRow(
                           style: ShellLocationFilterStyle.chips,
-                          location: _location,
-                          onLocationChanged: _onLocationChanged,
-                          onFilterTap: _onFilterTap,
-                          filterActive: _feedHotFilterIds.isNotEmpty,
+                          location: query.location,
+                          onLocationChanged: queryController.setLocation,
+                          onFilterTap: () {},
+                          filterActive: query.hasActiveFilters,
                         ),
                       ),
                     ),
@@ -124,27 +113,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
     );
   }
 
-  void _onLocationChanged(LocationFilterOption option) {
-    setState(() => _location = option);
-  }
-
-  void _onFilterTap() {}
-
   void _onFeedNavCompactChanged(bool compact) {
     if (_feedNavCompact == compact) return;
     setState(() => _feedNavCompact = compact);
-  }
-
-  void _toggleFeedHotFilter(String id) {
-    setState(() {
-      final next = Set<String>.from(_feedHotFilterIds);
-      if (next.contains(id)) {
-        next.remove(id);
-      } else {
-        next.add(id);
-      }
-      _feedHotFilterIds = next;
-    });
   }
 
   void _onTabChanged(AppNavTab tab) {
@@ -162,7 +133,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
     setState(() {
       _tab = tab;
-      if (tab != AppNavTab.cards) {
+      if (tab != AppNavTab.feed) {
         _feedNavCompact = false;
       }
     });
@@ -173,6 +144,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   void _onProfileTap() {
-    openCurrentUserProfile(context);
+    openMyProfile(context);
   }
 }

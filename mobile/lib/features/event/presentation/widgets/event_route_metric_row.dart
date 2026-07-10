@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
-import '../../../../shared/models/walk_card_route_metric.dart';
+import '../../../../shared/models/event_route_metric.dart';
 
 /// Иконка + метрика маршрута, как в шапке [WalkCard].
 class EventRouteMetricRow extends StatelessWidget {
@@ -14,19 +14,19 @@ class EventRouteMetricRow extends StatelessWidget {
     required this.label,
   });
 
-  final WalkCardRouteMetric metric;
+  final EventRouteMetric metric;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final icon = switch (metric) {
-      WalkCardRouteMetric.points => (
+      EventRouteMetric.points => (
         asset: 'assets/icons/common/mappin.svg',
         width: 13.0,
         height: 16.0,
       ),
-      WalkCardRouteMetric.distance => (
+      EventRouteMetric.distance => (
         asset: 'assets/icons/common/rote.svg',
         width: 14.0,
         height: 14.0,

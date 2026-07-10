@@ -16,7 +16,7 @@ abstract final class EventRoutePointsMock {
               detail: '13:15 · Сбор у фонтана',
               description:
                   'Встречаемся у главного входа, возле фонтана. Организатор '
-                  'будет с табличкой Walk&Talk.',
+                  'будет с табличкой JOOW.',
               photoAssets: ['$_cards/01.jpg', '$_cards/02.jpg'],
             ),
             EventRoutePoint(

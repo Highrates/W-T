@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../data/mock_user_profile_repository.dart';
-import 'user_profile_screen.dart';
+import '../../../app/app_router.dart';
+import '../../../core/providers/repository_providers.dart';
+import 'open_my_profile.dart';
 
 /// Открыть публичный профиль по [userId].
 void openUserProfile(BuildContext context, String userId) {
-  final profile = userProfileRepository.getProfile(userId);
-  if (profile == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Профиль не найден')),
-    );
+  final container = ProviderScope.containerOf(context);
+  final profiles = container.read(userProfileRepositoryProvider);
+  if (userId == profiles.currentUserId) {
+    openMyProfile(context);
     return;
   }
-
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => UserProfileScreen(profile: profile),
-    ),
-  );
+  context.push(AppRoutes.profilePath(userId));
 }
 
 /// Личный профиль текущего пользователя.
 void openCurrentUserProfile(BuildContext context) {
-  openUserProfile(context, userProfileRepository.currentUserId);
+  openMyProfile(context);
 }

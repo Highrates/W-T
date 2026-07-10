@@ -1,6 +1,6 @@
 /// Участник события.
-class WalkCardParticipant {
-  const WalkCardParticipant({
+class EventParticipant {
+  const EventParticipant({
     required this.id,
     required this.name,
     required this.avatarAsset,

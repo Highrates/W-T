@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'app_theme_colors.dart';
 
 /// Именованные текстовые стили (Figma).
+///
+/// Предпочитайте [AppTextStylesContext] (`context.textBody`, …) для цветов
+/// по умолчанию; [AppTextStyles] — когда нужен явный [Color].
 abstract final class AppTextStyles {
   static const String fontFamily = 'Inter';
 

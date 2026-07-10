@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
-import '../../../../shared/models/walk_card_data.dart';
-import '../../../../shared/models/walk_card_join_status.dart';
+import '../../../../shared/models/event_card_data.dart';
+import '../../../../shared/models/event_join_status.dart';
 import '../../../../ui/navigation/app_glass_footer_bar.dart';
 import '../../../cards/presentation/widgets/walk_card_join_effects.dart';
 import '../../../cards/presentation/widgets/walk_when_display.dart';
@@ -15,16 +15,18 @@ class EventFooterOverlay extends StatelessWidget {
     super.key,
     required this.event,
     required this.joinStatus,
+    required this.isJoinSubmitting,
     required this.routeChatEnabled,
+    required this.onJoinTap,
     required this.onSuccessBannerChanged,
-    required this.onJoinStatusChanged,
   });
 
-  final WalkCardData event;
-  final WalkCardJoinStatus joinStatus;
+  final EventCardData event;
+  final EventJoinStatus joinStatus;
+  final bool isJoinSubmitting;
   final bool routeChatEnabled;
+  final VoidCallback onJoinTap;
   final ValueChanged<bool> onSuccessBannerChanged;
-  final ValueChanged<WalkCardJoinStatus> onJoinStatusChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +36,12 @@ class EventFooterOverlay extends StatelessWidget {
     return AppGlassFooterBar(
       positioned: false,
       child: WalkCardJoinSection(
-        initialStatus: joinStatus,
+        status: joinStatus,
+        isSubmitting: isJoinSubmitting,
+        onJoinTap: onJoinTap,
         layout: WalkJoinSectionLayout.eventFooter,
         showBalloons: false,
         onSuccessBannerChanged: onSuccessBannerChanged,
-        onJoinStatusChanged: onJoinStatusChanged,
         eventFooterChat: EventFooterChatIcon(
           enabled: routeChatEnabled,
           onTap: routeChatEnabled

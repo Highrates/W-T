@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../features/create_route/presentation/open_create_route.dart';
+import '../../features/profile/presentation/open_my_profile.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -53,7 +55,11 @@ class _AppMenuSheet extends StatelessWidget {
 
   static const _mainItems = <_MenuItem>[
     _MenuItem(
-      label: 'Профиль',
+      label: 'Создать маршрут',
+      iconAsset: '$_menuIconBase/routing.svg',
+    ),
+    _MenuItem(
+      label: 'Моя страница',
       iconAsset: '$_menuIconBase/profile-circle.svg',
     ),
     _MenuItem(
@@ -155,6 +161,14 @@ class _AppMenuSheet extends StatelessWidget {
 
   void _onItemTap(BuildContext context, String label) {
     Navigator.of(context).pop();
+    if (label == 'Создать маршрут') {
+      openCreateRoute(context);
+      return;
+    }
+    if (label == 'Моя страница') {
+      openMyProfile(context);
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(label)),
     );

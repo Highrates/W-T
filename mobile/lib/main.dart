@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/walk_talk_app.dart';
 import 'core/map/mapkit_bootstrap.dart';
@@ -12,8 +13,10 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
   runApp(
-    const MapKitLifecycleHost(
-      child: WalkTalkApp(),
+    const ProviderScope(
+      child: MapKitLifecycleHost(
+        child: WalkTalkApp(),
+      ),
     ),
   );
 }

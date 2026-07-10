@@ -96,68 +96,191 @@
 
 ---
 
-## Репозиторий (целевая структура)
+## Репозиторий
 
 ```
 Walk&Talk/
 ├── docs/
-│   └── STRUCTURE.md          # этот файл
-├── mobile/                   # Flutter
+│   ├── STRUCTURE.md          # этот файл
+│   └── MAPS.md               # карты и гео
+├── mobile/                   # Flutter (iOS + Android)
 │   ├── lib/
-│   │   ├── app/              # MaterialApp, роутинг, тема
-│   │   ├── core/             # constants, theme tokens, utils
-│   │   ├── ui/               # UI-kit (компоненты)
-│   │   ├── features/         # фичи по экранам
-│   │   └── shared/           # models, widgets общие
-│   └── assets/
-│       ├── icons/
-│       └── images/
-├── backend/                  # NestJS (позже)
+│   │   ├── app/              # MaterialApp, тема, точка входа UI
+│   │   ├── core/
+│   │   │   ├── config/       # Yandex MapKit (dart-defines)
+│   │   │   ├── map/          # MapKit bootstrap, lifecycle, visibility
+│   │   │   └── theme/        # design tokens (цвета, spacing, glass, типографика)
+│   │   ├── ui/               # UI-kit (переиспользуемые виджеты)
+│   │   │   ├── avatars/
+│   │   │   ├── buttons/
+│   │   │   ├── chips/
+│   │   │   ├── dropdown/
+│   │   │   ├── icons/
+│   │   │   ├── layout/
+│   │   │   ├── map/
+│   │   │   ├── media/
+│   │   │   ├── navigation/
+│   │   │   └── organizer/
+│   │   ├── features/         # фичи (data + presentation)
+│   │   │   ├── shell/        # MainShellScreen, фильтры, локация
+│   │   │   ├── cards/        # лента карточек (feed)
+│   │   │   ├── event/        # страница события, маршрут на карте
+│   │   │   ├── map/          # таб «Карта»
+│   │   │   ├── people/       # таб «Люди»
+│   │   │   ├── profile/      # профиль пользователя
+│   │   │   ├── create_route/ # wizard «Создать маршрут»
+│   │   │   ├── geo/          # Geosuggest + reverse geocode client
+│   │   │   └── dev/          # UiKitPreviewScreen
+│   │   ├── shared/
+│   │   │   └── models/       # DTO для mock/API (GeoPoint, WalkCardData, …)
+│   │   └── main.dart
+│   ├── assets/
+│   │   ├── app_icon.png
+│   │   ├── fonts/            # Inter Variable
+│   │   ├── icons/            # nav/, actions/, common/ (SVG)
+│   │   └── images/           # cards/, people/ (mock-фото)
+│   ├── docs/
+│   │   └── DESIGN_TOKENS.md  # детали токенов из Figma
+│   └── README.md
+├── backend/                  # NestJS — geo API (M1)
+│   └── src/geo/              # suggest, reverse geocode
 └── admin/                    # React admin (позже)
 ```
+
+**Точка входа приложения:** `MainShellScreen` — нижняя glass-навигация и три основных таба. Отображаемое имя: **«Выходи»** (`MaterialApp.title`).
+
+---
+
+## Flutter — зависимости (ключевые)
+
+| Пакет | Назначение |
+|-------|------------|
+| `flutter_riverpod` | DI, shared state (фильтры, join, feed) |
+| `go_router` | Навигация: `/`, `/event/:id`, `/event/:id/template`, `/profile/:id`, `/create-route` |
+| `flutter_svg` | SVG-иконки из `assets/icons/` |
+| `liquid_glass_renderer` | Glass-эффект: nav bar, чипы, footer event |
+| `http` | REST-клиент → NestJS geo API |
+| `shared_preferences` | Локальный черновик wizard «Создать маршрут» |
+| `yandex_maps_mapkit_lite` | Яндекс MapKit на табе «Карта» и в event |
+
+Ключи: `dart_defines.json` → `MAPKIT_API_KEY`, `API_BASE_URL` (`core/config/`).
+
+---
+
+## Flutter — фичи (текущее состояние)
+
+| Фича | Экран / модуль | Статус |
+|------|----------------|--------|
+| `shell` | `MainShellScreen`, `ShellLocationFilterRow`, `FeedHotFiltersRow` | Реализовано (mock-данные) |
+| `cards` | `CardsScreen`, `WalkCard` | Реализовано (mock-лента) |
+| `event` | `EventScreen`, карта маршрута, точки, join-flow | Реализовано (mock) |
+| `map` | `MapScreen`, пины событий | Реализовано (mock + MapKit) |
+| `people` | `PeopleScreen`, overlay профиля | Реализовано (mock) |
+| `profile` | `UserProfileScreen`, sheets | Реализовано (mock-репозиторий) |
+| `create_route` | `CreateRouteScreen`, `RouteTemplateScreen`, `CreateRoutePointsMap` | **MVP UI** (publish + draft + geo) |
+| `geo` | `GeoRepository`, `GeoApiClient` → NestJS `/geo/*` | Реализовано (fallback mock) |
+| `dev` | `UiKitPreviewScreen` | Превью UI-kit |
+
+**Mock-слой:** репозитории и data-классы в `features/*/data/*_mock.dart`; API пока не подключён.
+
+**Shared-модели:** `GeoPoint`, `EventRoutePoint`, `EventCardData`, `EventDetailData`, `UserProfile`, `MapOccurrencePin`, … — в `shared/models/`.
+
+**Навигация:** `app/app_router.dart`, `openEvent()`, `openUserProfile()`, `openCreateRoute()` (меню → «Создать маршрут»).
+
+### Wizard «Создать маршрут» (organizer flow)
+
+Точка входа: **бургер-меню** → «Создать маршрут» → `/create-route`.
+
+Состояние: `CreateRouteDraft` + `CreateRouteController` (Riverpod). **Черновик** — `shared_preferences` (`CreateRouteDraftStorage`), автосохранение на каждом шаге; при входе — диалог «Продолжить / Новый».
+
+| Шаг | Содержание | Валидация |
+|-----|------------|-----------|
+| 1. Источник | Новый / из моих прошлых / шаблон | Выбор элемента при копии |
+| 2. Формат и тема | Пешком или авто; темы — multi-select | Формат обязателен |
+| 3. О маршруте | Название, описание | Название ≥3, описание ≥10 |
+| 4. Когда | Дата/время, «скрыть точное время» | Дата обязательна |
+| 5. Точки | Поиск + MapKit tap/drag пина + polyline между точками | Старт + финиш |
+| 6. Фото | Mock-обложки, можно пропустить | — |
+| 7. Участие | 1×1 (лимит 2) или группа; join auto/approval | Лимит ≥2 (если не 1×1) |
+| 8. Проверка | Превью + «Опубликовать» | — |
+
+**Правила продукта (реализованы в MVP):**
+
+| Правило | Реализация |
+|---------|------------|
+| 1×1 = лимит 2 | `isOneOnOne` → `maxParticipants: 2` |
+| Шаблон копирует маршрут/описание, дата новая | `selectTemplate`: points + description + format/themes; без title/cover/date |
+| Город карточки = город старта | `CreateRouteGeo.resolveCityId` по координатам старта |
+| Join по умолчанию | 1×1 → `approval`, группа → `auto` (можно изменить) |
+| После publish | `/event/:id?published=1` + sheet «Шаблон / Посмотреть» |
+| Повторы | `/event/:id/template` — отдельно от wizard |
+
+**Publish:** `EventRepository.publishFromDraft()` → mock добавляет в ленту; `feedControllerProvider` invalidate.
+
+**Следующие итерации:** polyline в реальном времени при drag, пешая маршрутизация, S3 upload, server draft.
 
 ---
 
 ## Flutter — UI-kit (компоненты)
 
-См. обсуждение в чате; список дополняется по мере реализации.
+Детали токенов: [`mobile/docs/DESIGN_TOKENS.md`](../mobile/docs/DESIGN_TOKENS.md). Экспорт: `ui/ui_kit.dart`.
+
+### Реализовано
+
+| Компонент | Файл / папка | Назначение |
+|-----------|--------------|------------|
+| `AppTheme`, tokens | `core/theme/` | Цвета light/dark, spacing 4–64, radius, glass, Inter |
+| `AppBottomNavBar` | `ui/navigation/` | Glass-nav: **menu** · **people \| cards \| map** · **аватар профиля** |
+| `AppNavTab` | `ui/navigation/` | Вкладки pill: `feed`, `people`, `map` |
+| `AppMenuSheet` | `ui/navigation/` | Bottom sheet: **создать маршрут**, профиль, мои события, … |
+| `AppGlassFooterBar` | `ui/navigation/` | Glass-footer на странице события |
+| `ShellLocationFilterRow` | `features/shell/` | Локация + фильтр (plain / glass chips) |
+| `ChipDropdown` | `ui/dropdown/` | Выбор города в chip |
+| `FeedHotFiltersRow` | `features/shell/` | Горизонтальные glass-чипы фильтров ленты |
+| `GlassChipButton` | `ui/chips/` | Glass chip (фильтры, локация) |
+| `CategoryTab` | `ui/category_tab.dart` | Пешком / Авто / Меню / Люди |
+| `WalkCard` | `features/cards/` | Карточка события в ленте |
+| `WalkCardHeader` / `WalkCardBody` | `features/cards/` | Шапка и тело карточки |
+| `WalkCardJoinEffects` | `features/cards/` | CTA «+ Хочу с вами», статусы участия |
+| `PrimaryButtonBlack` / `PrimaryButtonSmoke` | `ui/buttons/` | Основные CTA |
+| `SecondaryButton` | `ui/buttons/` | Контур / outlined вариант |
+| `AvatarStack` / `TappableAvatar` | `ui/avatars/` | Стек и одиночный аватар |
+| `OrganizerRow` (variants) | `ui/organizer/` | Организатор: standard / compact / chip |
+| `HeroDetailScaffold` | `ui/layout/` | Hero + draggable sheet (event, profile) |
+| `CoverCarousel` | `ui/media/` | Карусель обложек |
+| `AppYandexMap` / `AppMapPin` | `ui/map/` | MapKit-виджет и пин |
+| `LocationIcon` | `ui/icons/` | Иконка локации |
+| `AppGlobalPadding` | `ui/layout/` | Горизонтальный padding-global |
+
+### Запланировано (ещё не в коде)
 
 | Компонент | Назначение |
 |-----------|------------|
-| `AppTheme` / design tokens | Цвета, радиусы, типографика, отступы |
 | `AppScaffold` | Общий каркас экрана + safe area |
-| `BottomNavBar` | 5 иконок: лента, карта, создать, мои маршруты, профиль |
-| `LocationChip` | «Сочи 🌴» — выбор города |
-| `FilterIconButton` | Фильтры с бейджем счётчика |
-| `CategoryTabs` | Пешком / Авто / Меню / Люди |
-| `RouteCard` | Карточка объявления (чередование фото слева/справа) |
-| `RouteCardHeader` | Время, аватары участников, «N/M идут», «K точек» |
-| `RouteCardActions` | Лайк, репост, CTA «+ Хочу с вами» |
-| `PrimaryButton` | Чёрная кнопка CTA |
-| `SecondaryButton` | Контур / серый вариант |
-| `AvatarStack` | Стек аватаров участников |
-| `UserAvatar` | Один аватар |
-| `AppTextField` | Поля форм |
+| `AppTextField` | Поля форм (auth, wizard) — пока `TextField` Material |
 | `EmptyState` / `LoadingState` | Пустая лента, загрузка |
-| `AppNetworkImage` | Фото с плейсхолдером |
+| `AppNetworkImage` | Фото с плейсхолдером (сейчас — asset/mock) |
 
 ---
 
 ## Flutter — экраны (MVP)
 
-| Экран | Приоритет |
-|-------|-----------|
-| Splash / onboarding | P0 |
-| Auth (email, phone OTP) | P0 |
-| **Feed (лента)** — главный таб | P0 |
-| Создание маршрута (wizard) | P0 |
-| Деталь маршрута | P0 |
-| Карта (таб) | P1 |
-| Мои маршруты / участия | P1 |
-| Профиль | P1 |
-| Чат маршрута | P1 |
-| Фильтры (sheet) | P1 |
-| Настройки, верификация | P2 |
+| Экран | Приоритет | Статус |
+|-------|-----------|--------|
+| Splash / onboarding | P0 | Не начато |
+| Auth (email, phone OTP) | P0 | Не начато |
+| **Feed (лента)** — таб `feed` | P0 | **Реализовано** (mock) |
+| Создание маршрута (wizard) | P0 | **MVP UI** (`CreateRouteScreen`, mock publish) |
+| Деталь маршрута / события | P0 | **Реализовано** (`EventScreen`, mock) |
+| Карта (таб) | P1 | **Реализовано** (MapKit + mock-пины) |
+| Люди (таб) | P1 | **Реализовано** (mock) |
+| Профиль | P1 | **Реализовано** (mock) |
+| Мои маршруты / участия | P1 | Пункт меню; экран не реализован |
+| Чат маршрута | P1 | Иконка в footer event; экран чата не реализован |
+| Фильтры (sheet) | P1 | Чипы ленты есть; полный sheet — заглушка |
+| Настройки, верификация | P2 | Пункты меню; экраны не реализованы |
+| UI-kit preview | dev | `UiKitPreviewScreen` |
+| Token preview (legacy) | dev | `HomeScreen` (не в навигации) |
 
 ---
 
@@ -184,3 +307,6 @@ Walk&Talk/
 | 2026-05-19 | UI-kit: кнопки, CategoryTab, padding-global, UiKitPreviewScreen |
 | 2026-05-20 | BottomNavBar glass: menu · people/cards/map · add; MainShellScreen |
 | 2026-06-10 | Гео: `docs/MAPS.md`, MapKit lite в mobile, `GeoPoint`, geo на бэкенде (Геокодер/Геосаджест/Places) |
+| 2026-07-09 | Актуализация: структура `lib/` (shell, cards, event, map, people, profile), glass-nav, UI-kit, статусы экранов |
+| 2026-07-10 | P2: go_router, Riverpod, EventCardData, AppNavTab.feed, HeroDetailScaffold, MapDeferredHost, брендинг «Выходи» |
+| 2026-07-10 | Wizard точек: drag пинов (MapKit), polyline, tap → уточнение → «Добавить» |

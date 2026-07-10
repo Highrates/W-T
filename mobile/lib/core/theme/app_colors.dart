@@ -6,6 +6,7 @@ abstract final class AppPalette {
   static const Color lightBackground = Color(0xFFFFFFFF);
   static const Color lightText = Color(0xFF000000);
   static const Color lightSecondBackground = Color(0xFFF2F3F4);
+  static const Color brightSnow = Color(0xFFF6F6F6);
   static const Color lightFeedBackground = Color(0xFFF2F3F4);
   static const Color lightCaption = Color(0xFFA1A1A1);
   static const Color lightAccent = Color(0xFFFF423E);

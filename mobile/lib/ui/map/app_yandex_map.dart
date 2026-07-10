@@ -28,8 +28,12 @@ class AppYandexMap extends StatefulWidget {
     this.height,
     this.borderRadius = 0,
     this.onPinTap,
+    this.onMapTap,
+    this.onPinDragEnd,
+    this.draftPin,
     this.showRoutePolyline = false,
     this.largeRouteMarkers = false,
+    this.preserveCameraOnUpdate = false,
   });
 
   final List<AppMapPin> pins;
@@ -39,8 +43,14 @@ class AppYandexMap extends StatefulWidget {
   final double? height;
   final double borderRadius;
   final ValueChanged<AppMapPin>? onPinTap;
+  final ValueChanged<GeoPoint>? onMapTap;
+  final void Function(AppMapPin pin, GeoPoint location)? onPinDragEnd;
+  final GeoPoint? draftPin;
   final bool showRoutePolyline;
   final bool largeRouteMarkers;
+
+  /// Не сбрасывать камеру при обновлении пинов (wizard drag / polyline).
+  final bool preserveCameraOnUpdate;
 
   @override
   State<AppYandexMap> createState() => _AppYandexMapState();
@@ -48,49 +58,71 @@ class AppYandexMap extends StatefulWidget {
 
 class _AppYandexMapState extends State<AppYandexMap> {
   MapWindow? _mapWindow;
-  final List<PlacemarkMapObject> _placemarks = [];
-  final List<MapObjectTapListener> _tapListeners = [];
+  final List<_PlacemarkEntry> _placemarkEntries = [];
+  MapInputListener? _inputListener;
   PolylineMapObject? _routePolyline;
+  var _didFitCamera = false;
 
   @override
   void didUpdateWidget(covariant AppYandexMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_mapWindow != null &&
         (oldWidget.pins != widget.pins ||
+            oldWidget.draftPin != widget.draftPin ||
             oldWidget.initialCenter != widget.initialCenter ||
             oldWidget.initialZoom != widget.initialZoom ||
-            oldWidget.showRoutePolyline != widget.showRoutePolyline)) {
+            oldWidget.showRoutePolyline != widget.showRoutePolyline ||
+            oldWidget.onMapTap != widget.onMapTap ||
+            oldWidget.onPinDragEnd != widget.onPinDragEnd ||
+            oldWidget.preserveCameraOnUpdate != widget.preserveCameraOnUpdate)) {
       _applyCameraAndPins(_mapWindow!);
     }
   }
 
   void _onMapCreated(MapWindow mapWindow) {
     _mapWindow = mapWindow;
+    _didFitCamera = false;
     _applyCameraAndPins(mapWindow);
   }
 
   void _applyCameraAndPins(MapWindow mapWindow) {
     final map = mapWindow.map;
     final pins = widget.pins;
+    final allPins = [
+      ...pins,
+      if (widget.draftPin != null)
+        AppMapPin(
+          id: '__draft__',
+          location: widget.draftPin!,
+          style: AppMapPinStyle.draftSelection,
+          draggable: widget.onPinDragEnd != null,
+        ),
+    ];
 
     _clearMapObjects(map);
 
-    final center = widget.initialCenter ??
-        GeoPoint.centroid(pins.map((p) => p.location)) ??
-        const GeoPoint(latitude: 43.5855, longitude: 39.7231);
+    final shouldMoveCamera =
+        !widget.preserveCameraOnUpdate || !_didFitCamera;
 
-    final zoom = pins.length > 1
-        ? GeoPoint.zoomForSpread(pins.map((p) => p.location))
-        : widget.initialZoom;
+    if (shouldMoveCamera) {
+      final center = widget.initialCenter ??
+          GeoPoint.centroid(allPins.map((p) => p.location)) ??
+          const GeoPoint(latitude: 43.5855, longitude: 39.7231);
 
-    map.move(
-      CameraPosition(
-        Point(latitude: center.latitude, longitude: center.longitude),
-        zoom: zoom,
-        azimuth: 0,
-        tilt: 0,
-      ),
-    );
+      final zoom = allPins.length > 1
+          ? GeoPoint.zoomForSpread(allPins.map((p) => p.location))
+          : widget.initialZoom;
+
+      map.move(
+        CameraPosition(
+          Point(latitude: center.latitude, longitude: center.longitude),
+          zoom: zoom,
+          azimuth: 0,
+          tilt: 0,
+        ),
+      );
+      _didFitCamera = true;
+    }
 
     if (widget.showRoutePolyline && pins.length >= 2) {
       final polyline = map.mapObjects.addPolyline();
@@ -109,7 +141,7 @@ class _AppYandexMapState extends State<AppYandexMap> {
       _routePolyline = polyline;
     }
 
-    for (final pin in pins) {
+    for (final pin in allPins) {
       final placemark = map.mapObjects.addPlacemark()
         ..geometry = Point(
           latitude: pin.location.latitude,
@@ -117,9 +149,12 @@ class _AppYandexMapState extends State<AppYandexMap> {
         );
 
       final isEvent = pin.style == AppMapPinStyle.eventPhoto;
+      final isDraft = pin.style == AppMapPinStyle.draftSelection;
       final markerSize = isEvent
           ? 128.0
-          : (widget.largeRouteMarkers ? 132.0 : 96.0);
+          : (isDraft
+              ? 56.0
+              : (widget.largeRouteMarkers ? 132.0 : 96.0));
       placemark.setIconWithStyle(
         mapkit_image.ImageProvider(() => _markerImageFor(pin, markerSize)),
         IconStyle(
@@ -132,13 +167,28 @@ class _AppYandexMapState extends State<AppYandexMap> {
         ),
       );
 
-      _placemarks.add(placemark);
+      final entry = _PlacemarkEntry(placemark: placemark, pin: pin);
 
       if (widget.onPinTap != null) {
         final listener = _PinTapListener(onTap: () => widget.onPinTap!(pin));
-        _tapListeners.add(listener);
+        entry.tapListener = listener;
         placemark.addTapListener(listener);
       }
+
+      final canDrag = pin.draggable && widget.onPinDragEnd != null;
+      if (canDrag) {
+        placemark.draggable = true;
+        final dragListener = _PinDragListener(
+          onEnd: (point) => widget.onPinDragEnd!(
+            pin,
+            GeoPoint(latitude: point.latitude, longitude: point.longitude),
+          ),
+        );
+        entry.dragListener = dragListener;
+        placemark.setDragListener(dragListener);
+      }
+
+      _placemarkEntries.add(entry);
     }
 
     map.set2DMode(true);
@@ -146,14 +196,32 @@ class _AppYandexMapState extends State<AppYandexMap> {
     map.scrollGesturesEnabled = widget.interactive;
     map.zoomGesturesEnabled = widget.interactive;
     map.tiltGesturesEnabled = false;
+
+    if (widget.onMapTap != null) {
+      final listener = _MapTapInputListener(
+        onTap: (point) => widget.onMapTap!(
+          GeoPoint(latitude: point.latitude, longitude: point.longitude),
+        ),
+      );
+      _inputListener = listener;
+      map.addInputListener(listener);
+    }
   }
 
   void _clearMapObjects(Map map) {
-    for (final placemark in _placemarks) {
-      map.mapObjects.remove(placemark);
+    if (_inputListener != null) {
+      map.removeInputListener(_inputListener!);
+      _inputListener = null;
     }
-    _placemarks.clear();
-    _tapListeners.clear();
+
+    for (final entry in _placemarkEntries) {
+      entry.placemark.setDragListener(null);
+      if (entry.tapListener != null) {
+        entry.placemark.removeTapListener(entry.tapListener!);
+      }
+      map.mapObjects.remove(entry.placemark);
+    }
+    _placemarkEntries.clear();
 
     if (_routePolyline != null) {
       map.mapObjects.remove(_routePolyline!);
@@ -180,6 +248,9 @@ class _AppYandexMapState extends State<AppYandexMap> {
       AppMapPinStyle.routeWaypoint => MapMarkerRenderer.routeWaypointMarker(
           index: pin.waypointIndex ?? 1,
           photoAsset: pin.imageAsset,
+          size: markerSize,
+        ),
+      AppMapPinStyle.draftSelection => MapMarkerRenderer.draftSelectionMarker(
           size: markerSize,
         ),
     };
@@ -213,6 +284,27 @@ class _AppYandexMapState extends State<AppYandexMap> {
   }
 }
 
+class _PlacemarkEntry {
+  _PlacemarkEntry({required this.placemark, required this.pin});
+
+  final PlacemarkMapObject placemark;
+  final AppMapPin pin;
+  MapObjectTapListener? tapListener;
+  MapObjectDragListener? dragListener;
+}
+
+final class _MapTapInputListener implements MapInputListener {
+  _MapTapInputListener({required this.onTap});
+
+  final void Function(Point point) onTap;
+
+  @override
+  void onMapTap(Map map, Point point) => onTap(point);
+
+  @override
+  void onMapLongTap(Map map, Point point) {}
+}
+
 final class _PinTapListener implements MapObjectTapListener {
   _PinTapListener({required this.onTap});
 
@@ -222,5 +314,29 @@ final class _PinTapListener implements MapObjectTapListener {
   bool onMapObjectTap(MapObject mapObject, Point point) {
     onTap();
     return true;
+  }
+}
+
+final class _PinDragListener implements MapObjectDragListener {
+  _PinDragListener({required this.onEnd});
+
+  final void Function(Point point) onEnd;
+  Point? _lastPoint;
+
+  @override
+  void onMapObjectDragStart(MapObject mapObject) {}
+
+  @override
+  void onMapObjectDrag(MapObject mapObject, Point point) {
+    _lastPoint = point;
+  }
+
+  @override
+  void onMapObjectDragEnd(MapObject mapObject) {
+    final point = _lastPoint;
+    if (point != null) {
+      onEnd(point);
+    }
+    _lastPoint = null;
   }
 }

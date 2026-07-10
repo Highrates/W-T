@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_colors.dart';
+import 'cover_image.dart';
 
 /// Стиль индикатора страниц на обложке.
 enum CoverPageDotsVariant {
@@ -133,7 +134,7 @@ class _CoverCarouselState extends State<CoverCarousel> {
           onPageChanged: (index) => setState(() => _pageIndex = index),
           itemCount: assets.length,
           itemBuilder: (context, index) {
-            return Image.asset(assets[index], fit: BoxFit.cover);
+            return CoverImage(ref: assets[index], fit: BoxFit.cover);
           },
         ),
         if (widget.overlayBottomLeft != null)

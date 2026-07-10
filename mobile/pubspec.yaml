@@ -10,13 +10,28 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_svg: ^2.3.0
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.8.1
+  http: ^1.4.0
+  shared_preferences: ^2.5.3
   liquid_glass_renderer: ^0.2.0-dev.4
   yandex_maps_mapkit_lite: ^4.36.0
+  image_picker: ^1.2.3
+  path_provider: ^2.1.6
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/app_icon.png
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true

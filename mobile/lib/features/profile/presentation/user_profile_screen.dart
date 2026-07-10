@@ -1,152 +1,114 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
+
+import '../../../app/app_router.dart';
+import '../../../core/providers/repository_providers.dart';
 
 import '../../../core/theme/app_glass_tokens.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_theme_colors.dart';
-import '../../../shared/models/user_profile_data.dart';
-import '../../../ui/navigation/app_menu_sheet.dart';
-import '../../event/data/mock_event_repository.dart';
-import '../../event/presentation/event_screen.dart';
+import '../../../ui/layout/hero_detail_scaffold.dart';
+import '../../../ui/media/cover_carousel.dart';
+import '../application/user_profile_provider.dart';
+import '../../event/presentation/open_event.dart';
 import '../../event/presentation/widgets/event_glass_back_button.dart';
 import '../../event/presentation/widgets/event_glass_icon_button.dart';
 import 'widgets/profile_actions_sheet.dart';
-import 'widgets/profile_hero_carousel.dart';
 import 'widgets/profile_sheet_content.dart';
 
-/// Публичный профиль организатора / участника.
-class UserProfileScreen extends StatelessWidget {
-  const UserProfileScreen({super.key, required this.profile});
+/// Профиль пользователя (свой или чужой — по [userId]).
+class UserProfileScreen extends ConsumerWidget {
+  const UserProfileScreen({super.key, required this.userId});
 
-  final UserProfileData profile;
+  final String userId;
 
-  /// Как hero обложки на [EventScreen].
-  static const double _heroVisibleFraction = 0.70;
-  static const double _sheetOverlap = 30;
-  static const double _sheetMaxSize = 1.0;
-
-  static double _initialSheetSize(double screenHeight) {
-    final sheetTop = screenHeight * _heroVisibleFraction - _sheetOverlap;
-    final sheetHeight = screenHeight - sheetTop;
-    return (sheetHeight / screenHeight).clamp(0.28, 0.52);
-  }
-
-  void _openEvent(BuildContext context, String eventId, {bool isPast = false}) {
+  void _openEvent(
+    BuildContext context,
+    String eventId, {
+    bool isPast = false,
+  }) {
     if (isPast) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Событие завершено')),
       );
       return;
     }
-    final detail = eventRepository.getDetail(eventId);
-    if (detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Событие недоступно')),
-      );
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => EventScreen(data: detail),
-      ),
-    );
+    openEvent(context, eventId);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final top = MediaQuery.paddingOf(context).top;
-    final bottom = MediaQuery.paddingOf(context).bottom;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final initialSheetSize = _initialSheetSize(screenHeight);
-    final heroHeight = screenHeight * _heroVisibleFraction;
-    final dotsBottomInset = _sheetOverlap + AppSpacing.s12;
-    final scrollBottomPad = bottom + AppSpacing.s24;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.read(userProfileRepositoryProvider).currentUserId;
+    if (userId == currentUserId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go(AppRoutes.me);
+      });
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    return Scaffold(
-      backgroundColor: colors.heroBackdrop,
-      body: BackdropGroup(
-        child: Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: heroHeight,
-              child: ProfileHeroCarousel(
-                height: heroHeight,
-                photoAssets: profile.heroPhotoAssets,
-                dotsBottomInset: dotsBottomInset,
-              ),
+    final profile = ref.watch(userProfileProvider(userId));
+    if (profile == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Профиль не найден')),
+      );
+    }
+
+    return HeroDetailScaffold(
+      heroBuilder: (context, heroHeight, dotsBottomInset) {
+        return CoverCarousel(
+          height: heroHeight,
+          coverAssets: profile.heroPhotoAssets,
+          dotsBottomInset: dotsBottomInset,
+          dotsVariant: CoverPageDotsVariant.pill,
+        );
+      },
+      sheetBuilder: (context, scrollController, bottomPadding) {
+        return ProfileSheetContent(
+          profile: profile,
+          scrollController: scrollController,
+          bottomPadding: bottomPadding,
+          onUpcomingEventTap: (eventId) => _openEvent(context, eventId),
+          onPastEventTap: (eventId) =>
+              _openEvent(context, eventId, isPast: true),
+        );
+      },
+      chromeBuilder: (context, topInset) {
+        return BackdropGroup(
+          child: LiquidGlassLayer(
+            settings: AppGlassTokens.settingsFor(context),
+            useBackdropGroup: true,
+            child: Stack(
+              fit: StackFit.expand,
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  top: topInset + AppSpacing.s8,
+                  left: AppSpacing.paddingGlobal,
+                  child: EventGlassBackButton(
+                    onPressed: () => context.pop(),
+                  ),
+                ),
+                Positioned(
+                  top: topInset + AppSpacing.s8,
+                  right: AppSpacing.paddingGlobal,
+                  child: EventGlassIconButton(
+                    icon: Icons.more_horiz_rounded,
+                    semanticLabel: 'Действия',
+                    onPressed: () => showProfileActionsSheet(
+                      context: context,
+                      profileName: profile.name,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            DraggableScrollableSheet(
-              initialChildSize: initialSheetSize,
-              minChildSize: initialSheetSize,
-              maxChildSize: _sheetMaxSize,
-              snap: true,
-              snapSizes: [initialSheetSize, _sheetMaxSize],
-              builder: (context, scrollController) {
-                return ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(kAppMenuSheetTopRadius),
-                  ),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: colors.background,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(kAppMenuSheetTopRadius),
-                      ),
-                    ),
-                    child: ProfileSheetContent(
-                      profile: profile,
-                      scrollController: scrollController,
-                      bottomPadding: scrollBottomPad,
-                      onUpcomingEventTap: (eventId) =>
-                          _openEvent(context, eventId),
-                      onPastEventTap: (eventId) => _openEvent(
-                        context,
-                        eventId,
-                        isPast: true,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            LiquidGlassLayer(
-              settings: AppGlassTokens.settingsFor(context),
-              useBackdropGroup: true,
-              child: Stack(
-                fit: StackFit.expand,
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    top: top + AppSpacing.s8,
-                    left: AppSpacing.paddingGlobal,
-                    child: EventGlassBackButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  Positioned(
-                    top: top + AppSpacing.s8,
-                    right: AppSpacing.paddingGlobal,
-                    child: EventGlassIconButton(
-                      icon: Icons.more_horiz_rounded,
-                      semanticLabel: 'Действия',
-                      onPressed: () => showProfileActionsSheet(
-                        context: context,
-                        profileName: profile.name,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

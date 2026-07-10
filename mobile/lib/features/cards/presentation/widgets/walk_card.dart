@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme_colors.dart';
-import '../../../../shared/models/walk_card_data.dart';
+import '../../../../shared/models/event_card_data.dart';
 import 'walk_card_body.dart';
 import 'walk_card_header.dart';
 
@@ -14,14 +14,16 @@ class WalkCard extends StatelessWidget {
     required this.data,
     this.onOrganizerTap,
     this.onGoingTap,
-    this.onJoinSubmitted,
+    this.onJoinTap,
+    this.isJoinSubmitting = false,
     this.onCardTap,
   });
 
-  final WalkCardData data;
+  final EventCardData data;
   final VoidCallback? onOrganizerTap;
   final VoidCallback? onGoingTap;
-  final VoidCallback? onJoinSubmitted;
+  final VoidCallback? onJoinTap;
+  final bool isJoinSubmitting;
   final VoidCallback? onCardTap;
 
   static const double radius = AppRadius.r12;
@@ -57,7 +59,8 @@ class WalkCard extends StatelessWidget {
           data: data,
           borderSide: side,
           onOrganizerTap: onOrganizerTap,
-          onJoinSubmitted: onJoinSubmitted,
+          onJoinTap: onJoinTap,
+          isJoinSubmitting: isJoinSubmitting,
           radius: radius,
           coverHeight: coverHeight,
           cardInset: cardInset,

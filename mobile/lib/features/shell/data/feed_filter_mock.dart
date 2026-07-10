@@ -36,6 +36,12 @@ abstract final class FeedHotFilterMock {
   static const String relaxId = 'relax';
   static const String socialId = 'social';
 
+  static const String bikeId = 'bike';
+  static const String photoId = 'photo';
+  static const String kidsId = 'kids';
+  static const String nightId = 'night';
+  static const String dogId = 'dog';
+
   static const List<FeedHotFilter> formatFilters = [
     FeedHotFilter(
       id: walkId,
@@ -90,13 +96,52 @@ abstract final class FeedHotFilterMock {
     ),
   ];
 
+  /// Дополнительные теги только в wizard создания маршрута (не в ленте).
+  static const List<FeedHotFilter> createRouteExtraFilters = [
+    FeedHotFilter(
+      id: bikeId,
+      label: 'Велосипед',
+      axis: FeedFilterAxis.theme,
+      hint: 'Велопрогулка или bike-friendly маршрут',
+    ),
+    FeedHotFilter(
+      id: photoId,
+      label: 'Фото',
+      axis: FeedFilterAxis.theme,
+      hint: 'Остановки ради кадров и видов',
+    ),
+    FeedHotFilter(
+      id: kidsId,
+      label: 'С детьми',
+      axis: FeedFilterAxis.theme,
+      hint: 'Спокойный темп, подходит семьям',
+    ),
+    FeedHotFilter(
+      id: nightId,
+      label: 'Ночь',
+      axis: FeedFilterAxis.theme,
+      hint: 'Вечерний или ночной формат',
+    ),
+    FeedHotFilter(
+      id: dogId,
+      label: 'С собакой',
+      axis: FeedFilterAxis.theme,
+      hint: 'Pet-friendly маршрут',
+    ),
+  ];
+
   static List<FeedHotFilter> get all => [
         ...formatFilters,
         ...themeFilters,
       ];
 
+  static List<FeedHotFilter> get createRouteAll => [
+        ...all,
+        ...createRouteExtraFilters,
+      ];
+
   static FeedHotFilter? byId(String id) {
-    for (final filter in all) {
+    for (final filter in createRouteAll) {
       if (filter.id == id) return filter;
     }
     return null;
@@ -106,7 +151,8 @@ abstract final class FeedHotFilterMock {
       formatFilters.any((filter) => filter.id == id);
 
   static bool isThemeId(String id) =>
-      themeFilters.any((filter) => filter.id == id);
+      themeFilters.any((filter) => filter.id == id) ||
+      createRouteExtraFilters.any((filter) => filter.id == id);
 
   /// Пустой набор — вся лента. Внутри оси — ИЛИ, между осями — И.
   static bool matches({
@@ -117,7 +163,9 @@ abstract final class FeedHotFilterMock {
     if (selectedIds.isEmpty) return true;
 
     final formats = selectedIds.where(isFormatId).toSet();
-    final themes = selectedIds.where(isThemeId).toSet();
+    final themes = selectedIds
+        .where((id) => themeFilters.any((filter) => filter.id == id))
+        .toSet();
 
     if (formats.isNotEmpty && !formatIds.any(formats.contains)) {
       return false;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../data/people_mock.dart';
+import '../../../../shared/models/user_profile.dart';
 
 /// Имя и мета внизу фото: градиентное затемнение (город — в чипах шапки).
 class PeopleProfileOverlay extends StatelessWidget {
@@ -12,7 +12,7 @@ class PeopleProfileOverlay extends StatelessWidget {
     required this.bottomInset,
   });
 
-  final PeopleProfile profile;
+  final UserProfile profile;
   final double bottomInset;
 
   static const double _fadeHeight = 200;
@@ -23,11 +23,8 @@ class PeopleProfileOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eventsLine = profile.isOrganizer && profile.openEventsCount != null
-        ? PeopleProfile.openEventsLabel(profile.openEventsCount!)
-        : null;
-    final detailLine =
-        profile.isOrganizer ? profile.tags : profile.bio;
+    final eventsLine = profile.peopleTabEventsLine;
+    final detailLine = profile.peopleTabDetailLine;
 
     return Positioned(
       left: 0,

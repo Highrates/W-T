@@ -1,48 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../features/shell/data/feed_filter_mock.dart';
-import '../../../features/shell/data/location_filter_mock.dart';
-import '../../../features/shell/presentation/shell_filter_bar.dart';
-import '../../../features/shell/presentation/widgets/shell_location_filter_row.dart';
+import '../../event/presentation/open_event.dart';
+import '../../participation/application/participation_controller.dart';
+import '../../profile/presentation/open_user_profile.dart';
+import '../../shell/application/feed_controller.dart';
+import '../../shell/application/feed_query_controller.dart';
+import '../../shell/presentation/feed_hot_filters_row.dart';
+import '../../shell/presentation/widgets/shell_location_filter_row.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme_colors.dart';
 import '../../../ui/layout/app_global_padding.dart';
 import '../../../ui/navigation/app_bottom_nav_bar.dart';
-import '../../event/data/mock_event_repository.dart';
-import '../../event/presentation/event_screen.dart';
-import '../../profile/presentation/open_user_profile.dart';
 import 'widgets/cards_road_background.dart';
 import 'widgets/walk_card.dart';
 import 'widgets/walk_card_participants_sheet.dart';
 
 /// Лента вкладки «Карточки».
-class CardsScreen extends StatefulWidget {
+class CardsScreen extends ConsumerStatefulWidget {
   const CardsScreen({
     super.key,
-    required this.hotFilterIds,
-    required this.onHotFilterToggle,
-    required this.location,
-    required this.onLocationChanged,
-    required this.onFilterTap,
     required this.onNavCompactChanged,
   });
 
-  final Set<String> hotFilterIds;
-  final ValueChanged<String> onHotFilterToggle;
-  final LocationFilterOption location;
-  final ValueChanged<LocationFilterOption> onLocationChanged;
-  final VoidCallback onFilterTap;
   final ValueChanged<bool> onNavCompactChanged;
 
   @override
-  State<CardsScreen> createState() => _CardsScreenState();
+  ConsumerState<CardsScreen> createState() => _CardsScreenState();
 }
 
-class _CardsScreenState extends State<CardsScreen> {
+class _CardsScreenState extends ConsumerState<CardsScreen> {
   final _scrollController = ScrollController();
   var _stickyChips = false;
   double _lastScrollOffset = 0;
   var _navCompact = false;
+  String? _submittingEventId;
 
   static const _scrollDirectionThreshold = 6;
 
@@ -57,6 +49,12 @@ class _CardsScreenState extends State<CardsScreen> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitJoin(String eventId) async {
+    setState(() => _submittingEventId = eventId);
+    await ref.read(participationControllerProvider.notifier).submitJoin(eventId);
+    if (mounted) setState(() => _submittingEventId = null);
   }
 
   void _onScroll() {
@@ -90,20 +88,16 @@ class _CardsScreenState extends State<CardsScreen> {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final safeTop = MediaQuery.paddingOf(context).top;
-    final feed = eventRepository.getFeed().where((card) {
-      return FeedHotFilterMock.matches(
-        selectedIds: widget.hotFilterIds,
-        formatIds: card.formatIds,
-        themeIds: card.themeIds,
-      );
-    }).toList();
+    final feed = ref.watch(feedControllerProvider);
+    final query = ref.watch(feedQueryControllerProvider);
+    final queryController = ref.read(feedQueryControllerProvider.notifier);
     final bottomPadding = AppBottomNavBar.barHeight +
         AppBottomNavBar.barBottomMinimum +
         AppSpacing.s24;
 
     final chipsRow = FeedHotFiltersRow(
-      selectedIds: widget.hotFilterIds,
-      onToggle: widget.onHotFilterToggle,
+      selectedIds: query.hotFilterIds,
+      onToggle: queryController.toggleHotFilter,
     );
 
     return ColoredBox(
@@ -120,10 +114,10 @@ class _CardsScreenState extends State<CardsScreen> {
                   padding: EdgeInsets.only(top: safeTop + AppSpacing.s8),
                   child: ShellLocationFilterRow(
                     style: ShellLocationFilterStyle.plain,
-                    location: widget.location,
-                    onLocationChanged: widget.onLocationChanged,
-                    onFilterTap: widget.onFilterTap,
-                    filterActive: widget.hotFilterIds.isNotEmpty,
+                    location: query.location,
+                    onLocationChanged: queryController.setLocation,
+                    onFilterTap: () {},
+                    filterActive: query.hasActiveFilters,
                   ),
                 ),
               ),
@@ -134,41 +128,48 @@ class _CardsScreenState extends State<CardsScreen> {
                     bottom: AppSpacing.s12,
                   ),
                   child: _stickyChips
-                      ? SizedBox(height: shellFilterChipRowHeight())
+                      ? SizedBox(height: feedHotFilterChipRowHeight())
                       : chipsRow,
                 ),
               ),
-              SliverList.separated(
-                itemCount: feed.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.s12),
-                itemBuilder: (context, index) {
-                  final card = feed[index];
-                  return AppGlobalPadding(
-                    child: WalkCard(
-                      data: card,
-                      onCardTap: () {
-                        final detail = eventRepository.getDetail(card.id);
-                        if (detail == null) return;
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => EventScreen(data: detail),
-                          ),
-                        );
-                      },
-                      onOrganizerTap: () =>
-                          openUserProfile(context, card.organizerId),
-                      onGoingTap: card.participants.isEmpty
-                          ? null
-                          : () => showWalkCardParticipantsSheet(
-                                context: context,
-                                goingLabel: card.goingLabel,
-                                participants: card.participants,
-                              ),
+              if (feed.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'Нет событий по выбранным фильтрам',
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                  );
-                },
-              ),
+                  ),
+                )
+              else
+                SliverList.separated(
+                  itemCount: feed.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.s12),
+                  itemBuilder: (context, index) {
+                    final card = feed[index];
+                    return AppGlobalPadding(
+                      child: RepaintBoundary(
+                        child: WalkCard(
+                          data: card,
+                          isJoinSubmitting: _submittingEventId == card.id,
+                          onJoinTap: () => _submitJoin(card.id),
+                          onCardTap: () => openEvent(context, card.id),
+                        onOrganizerTap: () =>
+                            openUserProfile(context, card.organizerId),
+                        onGoingTap: card.participants.isEmpty
+                            ? null
+                            : () => showWalkCardParticipantsSheet(
+                                  context: context,
+                                  goingLabel: card.goingLabel,
+                                  participants: card.participants,
+                                ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               SliverPadding(
                 padding: EdgeInsets.only(bottom: bottomPadding),
               ),

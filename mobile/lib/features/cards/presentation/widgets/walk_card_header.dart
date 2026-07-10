@@ -5,8 +5,8 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
-import '../../../../shared/models/walk_card_data.dart';
-import '../../../../shared/models/walk_card_route_metric.dart';
+import '../../../../shared/models/event_card_data.dart';
+import '../../../../shared/models/event_route_metric.dart';
 import '../../../../ui/avatars/avatar_stack.dart';
 import '../../../profile/presentation/open_user_profile.dart';
 import 'walk_when_display.dart';
@@ -22,7 +22,7 @@ class WalkCardHeader extends StatelessWidget {
     this.avatarOverlap = 10,
   });
 
-  final WalkCardData data;
+  final EventCardData data;
   final BorderSide borderSide;
   final VoidCallback? onGoingTap;
   final double radius;
@@ -36,12 +36,12 @@ class WalkCardHeader extends StatelessWidget {
     final canOpenGoing = onGoingTap != null && data.participants.isNotEmpty;
 
     final routeIcon = switch (data.routeMetric) {
-      WalkCardRouteMetric.points => (
+      EventRouteMetric.points => (
         asset: 'assets/icons/common/mappin.svg',
         width: 13.0,
         height: 16.0,
       ),
-      WalkCardRouteMetric.distance => (
+      EventRouteMetric.distance => (
         asset: 'assets/icons/common/rote.svg',
         width: 14.0,
         height: 14.0,

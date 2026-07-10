@@ -21,7 +21,7 @@ class FeedHotFiltersRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: shellFilterChipRowHeight(),
+      height: feedHotFilterChipRowHeight(),
       child: LiquidGlassLayer(
         settings: AppGlassTokens.feedChipGlass,
         useBackdropGroup: true,
@@ -48,4 +48,4 @@ class FeedHotFiltersRow extends StatelessWidget {
 }
 
 /// Высота ряда горячих чипов.
-double shellFilterChipRowHeight() => GlassChipButton.height;
+double feedHotFilterChipRowHeight() => GlassChipButton.height;

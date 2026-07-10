@@ -4,7 +4,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../shared/models/event_detail_data.dart';
-import '../../../../shared/models/walk_card_route_metric.dart';
+import '../../../../shared/models/event_route_metric.dart';
 import '../../../../ui/organizer/organizer_row.dart';
 import 'event_participants_section.dart';
 import 'event_route_map.dart';
@@ -108,7 +108,7 @@ class _RouteSectionHeader extends StatelessWidget {
     required this.onTap,
   });
 
-  final WalkCardRouteMetric metric;
+  final EventRouteMetric metric;
   final String metricLabel;
   final VoidCallback onTap;
 

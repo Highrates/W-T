@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme_colors.dart';
+
 /// Волнистая «дорога» на фоне ленты карточек — без видимого начала и конца.
 class CardsRoadBackground extends StatelessWidget {
   const CardsRoadBackground({super.key});
@@ -14,11 +16,13 @@ class CardsRoadBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final caption = context.appColors.caption;
+
     return IgnorePointer(
       child: CustomPaint(
         painter: _CardsRoadPathPainter(
-          lineColor: const Color(0xFFA1A1A1).withValues(alpha: 0.14),
-          haloColor: const Color(0xFFA1A1A1).withValues(alpha: 0.05),
+          lineColor: caption.withValues(alpha: 0.14),
+          haloColor: caption.withValues(alpha: 0.05),
         ),
         size: Size.infinite,
       ),

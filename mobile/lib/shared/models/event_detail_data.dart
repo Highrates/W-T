@@ -1,5 +1,5 @@
 import 'event_route_point.dart';
-import 'walk_card_data.dart';
+import 'event_card_data.dart';
 
 /// Данные экрана мероприятия (карточка ленты + детали).
 class EventDetailData {
@@ -8,6 +8,6 @@ class EventDetailData {
     required this.routePoints,
   });
 
-  final WalkCardData event;
+  final EventCardData event;
   final List<EventRoutePoint> routePoints;
 }

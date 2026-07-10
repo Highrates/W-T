@@ -1,5 +1,5 @@
 /// Тип метрики маршрута в шапке карточки.
-enum WalkCardRouteMetric {
+enum EventRouteMetric {
   /// `mappin.svg` + «N точек».
   points,
 
