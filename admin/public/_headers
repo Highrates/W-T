@@ -1,0 +1,17 @@
+# Security headers for static admin SPA (Cloudflare Pages / Netlify / similar).
+# Copy ships with `vite build` via public/.
+#
+# !!! REQUIRED BEFORE PROD !!!
+# Replace EVERY occurrence of https://api.example.com with your real API origin
+# (scheme + host of VITE_API_BASE_URL, WITHOUT the /api path).
+# Example: VITE_API_BASE_URL=https://api.walk-talk.app/api  →  https://api.walk-talk.app
+# If you leave the placeholder, the browser will block all API calls (CSP connect-src).
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://api.example.com; worker-src 'self' blob:
