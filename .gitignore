@@ -14,5 +14,8 @@ mobile/ios/build/
 mobile/.idea/
 mobile/*.iml
 
+# Cursor
+.cursor/
+
 # OS
 .DS_Store
