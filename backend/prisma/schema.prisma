@@ -1,0 +1,350 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum JoinMode {
+  AUTO
+  APPROVAL
+}
+
+enum OccurrenceStatus {
+  PUBLISHED
+  CANCELLED
+  HIDDEN
+  COMPLETED
+}
+
+enum RouteSource {
+  BLANK
+  FROM_PREVIOUS
+  FROM_TEMPLATE
+}
+
+enum ParticipationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE
+  HARASSMENT
+  FAKE
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+enum PushPlatform {
+  IOS
+  ANDROID
+}
+
+enum AuditAction {
+  USER_BLOCKED
+  USER_UNBLOCKED
+  USER_ROLE_CHANGED
+  OCCURRENCE_HIDDEN
+  OCCURRENCE_UNHIDDEN
+  OCCURRENCE_CANCELLED
+  REPORT_STATUS_CHANGED
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  phone         String?   @unique
+  email         String?   @unique
+  phoneVerified Boolean   @default(false) @map("phone_verified")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  name          String?
+  avatarUrl     String?   @map("avatar_url")
+  bio           String?
+  cityId        String?   @map("city_id") @db.Uuid
+  role          UserRole  @default(USER)
+  isBlocked     Boolean   @default(false) @map("is_blocked")
+  lastActiveAt  DateTime? @map("last_active_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  city               City?             @relation("UserCity", fields: [cityId], references: [id], onDelete: SetNull)
+  interests          UserInterest[]
+  refreshTokens      RefreshToken[]
+  routeDraft         RouteDraft?
+  organizedTemplates RouteTemplate[]   @relation("TemplateOrganizer")
+  organizedEvents    RouteOccurrence[] @relation("OccurrenceOrganizer")
+  participations     Participation[]
+  reportsFiled       Report[]          @relation("ReportReporter")
+  reportsReceived    Report[]          @relation("ReportTargetUser")
+  deviceTokens       DeviceToken[]
+  auditLogs          AuditLog[]        @relation("AuditActor")
+  chatMessages       Message[]         @relation("MessageSender")
+
+  @@map("users")
+}
+
+model City {
+  id              String @id @default(uuid()) @db.Uuid
+  slug            String @unique
+  name            String
+  countryCode     String @default("RU") @map("country_code")
+  googlePlaceId   String? @unique @map("google_place_id")
+  occurrenceCount Int    @default(0) @map("occurrence_count")
+  centerLat       Float? @map("center_lat")
+  centerLng       Float? @map("center_lng")
+
+  users        User[]            @relation("UserCity")
+  templates    RouteTemplate[]
+  occurrences  RouteOccurrence[]
+
+  @@map("cities")
+}
+
+model UserInterest {
+  userId   String @map("user_id") @db.Uuid
+  filterId String @map("filter_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, filterId])
+  @@map("user_interests")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model RouteDraft {
+  userId    String   @id @map("user_id") @db.Uuid
+  step      String?
+  payload   Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("route_drafts")
+}
+
+model RouteTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizerId     String   @map("organizer_id") @db.Uuid
+  title           String
+  description     String
+  cityId          String   @map("city_id") @db.Uuid
+  formatIds       String[] @map("format_ids")
+  themeIds        String[] @map("theme_ids")
+  joinMode        JoinMode @map("join_mode")
+  maxParticipants Int      @map("max_participants")
+  isOneOnOne      Boolean  @default(false) @map("is_one_on_one")
+  coverUrls       String[] @map("cover_urls")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  organizer   User                 @relation("TemplateOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  city        City                 @relation(fields: [cityId], references: [id])
+  occurrences RouteOccurrence[]
+  points      RouteTemplatePoint[]
+
+  @@index([organizerId])
+  @@map("route_templates")
+}
+
+model RouteTemplatePoint {
+  id          String  @id @default(uuid()) @db.Uuid
+  templateId  String  @map("template_id") @db.Uuid
+  sortOrder   Int     @map("sort_order")
+  title       String
+  latitude    Float
+  longitude   Float
+  address     String?
+  detail      String?
+  description String?
+  photoUrls   String[] @map("photo_urls")
+  poiId       String? @map("poi_id")
+  isStart     Boolean @default(false) @map("is_start")
+  isFinish    Boolean @default(false) @map("is_finish")
+
+  template RouteTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId, sortOrder])
+  @@map("route_template_points")
+}
+
+model RouteOccurrence {
+  id                 String           @id @default(uuid()) @db.Uuid
+  templateId         String?          @map("template_id") @db.Uuid
+  organizerId        String           @map("organizer_id") @db.Uuid
+  cityId             String           @map("city_id") @db.Uuid
+  title              String
+  description        String
+  formatIds          String[]         @map("format_ids")
+  themeIds           String[]         @map("theme_ids")
+  joinMode           JoinMode         @map("join_mode")
+  maxParticipants    Int              @map("max_participants")
+  isOneOnOne         Boolean          @default(false) @map("is_one_on_one")
+  coverUrls          String[]         @map("cover_urls")
+  startsAt           DateTime?        @map("starts_at")
+  hideExactTime      Boolean          @default(false) @map("hide_exact_time")
+  status             OccurrenceStatus @default(PUBLISHED)
+  startLatitude      Float            @map("start_latitude")
+  startLongitude     Float            @map("start_longitude")
+  participantCount   Int              @default(1) @map("participant_count")
+  source             RouteSource      @default(BLANK)
+  sourceOccurrenceId String?          @map("source_occurrence_id") @db.Uuid
+  publishedAt        DateTime         @default(now()) @map("published_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  template  RouteTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  organizer User           @relation("OccurrenceOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  city           City            @relation(fields: [cityId], references: [id])
+  points         RoutePoint[]
+  participations Participation[]
+  reports        Report[]
+  chatRoom       ChatRoom?
+
+  @@index([cityId, status, publishedAt])
+  @@index([organizerId])
+  @@index([status, startsAt])
+  @@map("route_occurrences")
+}
+
+model RoutePoint {
+  id           String  @id @default(uuid()) @db.Uuid
+  occurrenceId String  @map("occurrence_id") @db.Uuid
+  sortOrder    Int     @map("sort_order")
+  title        String
+  latitude     Float
+  longitude    Float
+  address      String?
+  detail       String?
+  description  String?
+  photoUrls    String[] @map("photo_urls")
+  poiId        String? @map("poi_id")
+  isStart      Boolean @default(false) @map("is_start")
+  isFinish     Boolean @default(false) @map("is_finish")
+
+  occurrence RouteOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+
+  @@index([occurrenceId, sortOrder])
+  @@map("route_points")
+}
+
+model Participation {
+  id           String              @id @default(uuid()) @db.Uuid
+  occurrenceId String              @map("occurrence_id") @db.Uuid
+  userId       String              @map("user_id") @db.Uuid
+  status       ParticipationStatus @default(PENDING)
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  occurrence RouteOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([occurrenceId, userId])
+  @@index([occurrenceId, status])
+  @@index([userId, status])
+  @@map("participations")
+}
+
+model Report {
+  id            String       @id @default(uuid()) @db.Uuid
+  reporterId    String       @map("reporter_id") @db.Uuid
+  targetUserId  String?      @map("target_user_id") @db.Uuid
+  occurrenceId  String?      @map("occurrence_id") @db.Uuid
+  reason        ReportReason
+  comment       String?
+  status        ReportStatus @default(OPEN)
+  moderatorNote  String?  @map("moderator_note")
+  actionsApplied String[] @default([]) @map("actions_applied")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  reporter   User             @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUser User?            @relation("ReportTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  occurrence RouteOccurrence? @relation(fields: [occurrenceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("reports")
+}
+
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  actorId    String      @map("actor_id") @db.Uuid
+  action     AuditAction
+  targetType String      @map("target_type")
+  targetId   String      @map("target_id") @db.Uuid
+  metadata   Json?
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  actor User @relation("AuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+model ChatRoom {
+  id           String   @id @default(uuid()) @db.Uuid
+  occurrenceId String   @unique @map("occurrence_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  occurrence RouteOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  messages   Message[]
+
+  @@map("chat_rooms")
+}
+
+model Message {
+  id        String   @id @default(uuid()) @db.Uuid
+  roomId    String   @map("room_id") @db.Uuid
+  senderId  String   @map("sender_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+model DeviceToken {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  token     String       @unique
+  platform  PushPlatform
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
+}
