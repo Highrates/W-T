@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/auth/require_auth.dart';
+import '../../../../core/providers/repository_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
+import '../../../../shared/models/event_join_status.dart';
 import '../../../../ui/navigation/app_menu_sheet.dart';
+import '../../../participation/application/participation_controller.dart';
+import '../../../participation/presentation/event_organizer_participants_sheet.dart';
+import '../../../reports/presentation/report_reason_sheet.dart';
 
-/// Действия в шапке мероприятия: поделиться, пожаловаться.
+/// Действия в шапке мероприятия.
 Future<void> showEventActionsSheet({
   required BuildContext context,
+  required WidgetRef ref,
+  required String eventId,
   required String eventTitle,
+  required EventJoinStatus joinStatus,
+  required bool isOrganizer,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -55,15 +66,72 @@ Future<void> showEventActionsSheet({
                   );
                 },
               ),
+              if (isOrganizer) ...[
+                const SizedBox(height: AppSpacing.s12),
+                _EventActionRow(
+                  icon: Icons.group_outlined,
+                  label: 'Заявки участников',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    showEventOrganizerParticipantsSheet(
+                      context: context,
+                      ref: ref,
+                      eventId: eventId,
+                    );
+                  },
+                ),
+              ],
+              if (!isOrganizer &&
+                  (joinStatus == EventJoinStatus.pending ||
+                      joinStatus == EventJoinStatus.approved)) ...[
+                const SizedBox(height: AppSpacing.s12),
+                _EventActionRow(
+                  icon: Icons.logout_rounded,
+                  label: 'Отменить участие',
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    if (!await requireAuth(context)) return;
+                    try {
+                      await ref
+                          .read(participationControllerProvider.notifier)
+                          .leave(eventId);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Участие отменено')),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$e')),
+                      );
+                    }
+                  },
+                ),
+              ],
               const SizedBox(height: AppSpacing.s12),
               _EventActionRow(
                 icon: Icons.flag_outlined,
                 label: 'Пожаловаться',
-                onTap: () {
+                onTap: () async {
                   Navigator.of(sheetContext).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Жалоба отправлена')),
-                  );
+                  if (!await requireAuth(context)) return;
+                  final reason = await pickReportReason(context);
+                  if (reason == null || !context.mounted) return;
+                  try {
+                    await ref.read(reportsRepositoryProvider).submitReport(
+                          occurrenceId: eventId,
+                          reason: reason,
+                        );
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Жалоба отправлена')),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$e')),
+                    );
+                  }
                 },
               ),
             ],

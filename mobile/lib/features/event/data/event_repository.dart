@@ -5,10 +5,9 @@ import '../../shell/domain/feed_query.dart';
 
 /// Источник данных ленты и детали мероприятия.
 abstract interface class EventRepository {
-  List<EventCardData> getFeed({FeedQuery? query});
+  Future<List<EventCardData>> getFeed({FeedQuery? query});
 
-  EventDetailData? getDetail(String eventId);
+  Future<EventDetailData?> getDetail(String eventId);
 
-  /// Публикация маршрута из wizard (mock / API).
-  String publishFromDraft(CreateRouteDraft draft);
+  Future<String> publishFromDraft(CreateRouteDraft draft);
 }

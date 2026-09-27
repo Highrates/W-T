@@ -5,8 +5,9 @@ import '../../../shared/models/event_detail_data.dart';
 import '../../participation/application/participation_controller.dart';
 
 /// Деталь события с актуальным join-status.
-final eventDetailProvider = Provider.family<EventDetailData?, String>((ref, id) {
-  final detail = ref.read(eventRepositoryProvider).getDetail(id);
+final eventDetailProvider =
+    FutureProvider.family<EventDetailData?, String>((ref, id) async {
+  final detail = await ref.read(eventRepositoryProvider).getDetail(id);
   if (detail == null) return null;
 
   final joinStatuses = ref.watch(participationControllerProvider);

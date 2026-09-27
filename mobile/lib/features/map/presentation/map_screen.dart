@@ -18,59 +18,69 @@ class MapScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pins = ref.watch(mapControllerProvider);
+    final pinsAsync = ref.watch(mapControllerProvider);
     final query = ref.watch(feedQueryControllerProvider);
     final queryController = ref.read(feedQueryControllerProvider.notifier);
     final colors = context.appColors;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        MapDeferredHost(
-          strategy: MapDeferStrategy.tabSwitch,
-          placeholder: ColoredBox(color: colors.secondBackground),
-          builder: (context) {
-            return AppYandexMap(
-              pins: [
-                for (final pin in pins)
-                  AppMapPin(
-                    id: pin.occurrenceId,
-                    title: pin.title,
-                    location: pin.location,
-                    imageAsset: pin.coverAsset,
-                    style: AppMapPinStyle.eventPhoto,
-                  ),
-              ],
-              initialCenter: GeoPoint.centroid(pins.map((p) => p.location)) ??
-                  const GeoPoint(latitude: 43.5782, longitude: 39.7194),
-              onPinTap: (pin) {
-                final id = pin.id;
-                if (id == null) return;
-                openEvent(context, id);
-              },
-            );
-          },
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.s8),
-              child: ShellLocationFilterRow(
-                style: ShellLocationFilterStyle.chips,
-                location: query.location,
-                onLocationChanged: queryController.setLocation,
-                onFilterTap: () {},
-                filterActive: query.hasActiveFilters,
-                simulatedGlass: true,
+    return pinsAsync.when(
+      loading: () => ColoredBox(
+        color: colors.secondBackground,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => ColoredBox(
+        color: colors.secondBackground,
+        child: Center(child: Text('Карта: $error')),
+      ),
+      data: (pins) => Stack(
+        fit: StackFit.expand,
+        children: [
+          MapDeferredHost(
+            strategy: MapDeferStrategy.tabSwitch,
+            placeholder: ColoredBox(color: colors.secondBackground),
+            builder: (context) {
+              return AppYandexMap(
+                pins: [
+                  for (final pin in pins)
+                    AppMapPin(
+                      id: pin.occurrenceId,
+                      title: pin.title,
+                      location: pin.location,
+                      imageAsset: pin.coverAsset,
+                      style: AppMapPinStyle.eventPhoto,
+                    ),
+                ],
+                initialCenter: GeoPoint.centroid(pins.map((p) => p.location)) ??
+                    const GeoPoint(latitude: 43.5782, longitude: 39.7194),
+                onPinTap: (pin) {
+                  final id = pin.id;
+                  if (id == null) return;
+                  openEvent(context, id);
+                },
+              );
+            },
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s8),
+                child: ShellLocationFilterRow(
+                  style: ShellLocationFilterStyle.chips,
+                  location: query.location,
+                  onLocationChanged: queryController.setLocation,
+                  onFilterTap: () {},
+                  filterActive: query.hasActiveFilters,
+                  simulatedGlass: true,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

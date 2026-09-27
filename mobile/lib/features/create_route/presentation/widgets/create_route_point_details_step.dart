@@ -48,11 +48,9 @@ class _CreateRoutePointDetailsStepState
     final paths = await Future.wait(
       images.map((file) => CreateRouteCoverStorage.persistPickedFile(file.path)),
     );
-    final point = widget.draft.points[index];
-    _updatePoint(
-      index,
-      point.copyWith(photoAssets: [...point.photoAssets, ...paths]),
-    );
+    await ref
+        .read(createRouteControllerProvider.notifier)
+        .addPointPhotoPaths(index, paths);
   }
 
   void _removePhoto(int pointIndex, int photoIndex) {

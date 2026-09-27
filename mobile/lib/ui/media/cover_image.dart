@@ -2,10 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-/// Путь к обложке: asset (`assets/...`) или локальный файл на устройстве.
+/// Путь к обложке: asset, http(s) URL или локальный файл.
 bool coverRefIsAsset(String ref) => ref.startsWith('assets/');
 
-/// Обложка из asset или файла на диске.
+bool coverRefIsNetwork(String ref) =>
+    ref.startsWith('http://') || ref.startsWith('https://');
+
+/// Обложка из asset, сети или файла на диске.
 class CoverImage extends StatelessWidget {
   const CoverImage({
     super.key,
@@ -22,6 +25,14 @@ class CoverImage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (coverRefIsAsset(ref)) {
       return Image.asset(
+        ref,
+        fit: fit,
+        errorBuilder: errorBuilder,
+      );
+    }
+
+    if (coverRefIsNetwork(ref)) {
+      return Image.network(
         ref,
         fit: fit,
         errorBuilder: errorBuilder,

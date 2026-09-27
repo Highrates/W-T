@@ -4,6 +4,6 @@ import '../../../core/providers/repository_providers.dart';
 import '../../../shared/models/user_profile.dart';
 
 final userProfileProvider =
-    Provider.family<UserProfile?, String>((ref, userId) {
+    FutureProvider.family<UserProfile?, String>((ref, userId) {
   return ref.read(userProfileRepositoryProvider).getProfile(userId);
 });

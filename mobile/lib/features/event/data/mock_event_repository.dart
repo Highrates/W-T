@@ -8,7 +8,7 @@ import '../../shell/domain/feed_query.dart';
 import 'event_repository.dart';
 import 'event_route_points_mock.dart';
 
-/// Мок-реализация [EventRepository] до подключения API.
+/// Мок-реализация [EventRepository].
 class MockEventRepository implements EventRepository {
   MockEventRepository();
 
@@ -16,14 +16,14 @@ class MockEventRepository implements EventRepository {
   final Map<String, List<EventRoutePoint>> _publishedRoutePoints = {};
 
   @override
-  List<EventCardData> getFeed({FeedQuery? query}) {
+  Future<List<EventCardData>> getFeed({FeedQuery? query}) async {
     final all = [...CardsFeedMock.feed, ..._publishedEvents];
     if (query == null) return all;
     return all.where(query.matchesCard).toList();
   }
 
   @override
-  EventDetailData? getDetail(String eventId) {
+  Future<EventDetailData?> getDetail(String eventId) async {
     for (final card in _publishedEvents) {
       if (card.id == eventId) {
         return EventDetailData(
@@ -45,7 +45,7 @@ class MockEventRepository implements EventRepository {
   }
 
   @override
-  String publishFromDraft(CreateRouteDraft draft) {
+  Future<String> publishFromDraft(CreateRouteDraft draft) async {
     final eventId = CreateRoutePublisher.generateEventId();
     final event = CreateRoutePublisher.toEventCard(
       draft: draft,

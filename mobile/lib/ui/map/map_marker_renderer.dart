@@ -1,18 +1,22 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../media/cover_image.dart';
 
 /// Рендер bitmap-меток для Yandex MapKit (кружки с фото / номер вехи).
 abstract final class MapMarkerRenderer {
   static Future<ui.Image> eventPhotoMarker({
-    required String assetPath,
+    required String imageRef,
     double size = 108,
+    String fallbackAsset = 'assets/images/cards/01.jpg',
   }) async {
-    final photo = await _loadAssetImage(assetPath);
+    final photo = await _loadImage(imageRef, fallbackAsset: fallbackAsset);
     return _drawPhotoCircle(
       photo: photo,
       size: size,
@@ -26,9 +30,10 @@ abstract final class MapMarkerRenderer {
     required int index,
     String? photoAsset,
     double size = 80,
+    String fallbackAsset = 'assets/images/cards/01.jpg',
   }) async {
-    if (photoAsset != null) {
-      final photo = await _loadAssetImage(photoAsset);
+    if (photoAsset != null && photoAsset.isNotEmpty) {
+      final photo = await _loadImage(photoAsset, fallbackAsset: fallbackAsset);
       return _drawPhotoCircle(
         photo: photo,
         size: size,
@@ -40,11 +45,52 @@ abstract final class MapMarkerRenderer {
     return _drawNumberBadge(index: index, size: size);
   }
 
+  static Future<ui.Image> _loadImage(
+    String ref, {
+    required String fallbackAsset,
+  }) async {
+    try {
+      if (coverRefIsNetwork(ref)) {
+        return await _loadNetworkImage(ref);
+      }
+      if (coverRefIsAsset(ref)) {
+        return await _loadAssetImage(ref);
+      }
+      if (ref.isNotEmpty) {
+        final file = File(ref);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          final codec = await ui.instantiateImageCodec(bytes);
+          final frame = await codec.getNextFrame();
+          return frame.image;
+        }
+      }
+    } catch (_) {}
+    return _loadAssetImage(fallbackAsset);
+  }
+
   static Future<ui.Image> _loadAssetImage(String assetPath) async {
     final data = await rootBundle.load(assetPath);
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
     return frame.image;
+  }
+
+  static Future<ui.Image> _loadNetworkImage(String url) async {
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close();
+      if (response.statusCode != 200) {
+        throw StateError('HTTP ${response.statusCode}');
+      }
+      final bytes = await consolidateHttpClientResponseBytes(response);
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } finally {
+      client.close();
+    }
   }
 
   static Future<ui.Image> _drawPhotoCircle({

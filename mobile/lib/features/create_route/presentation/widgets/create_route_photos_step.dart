@@ -41,7 +41,7 @@ class _CreateRoutePhotosStepState extends ConsumerState<CreateRoutePhotosStep> {
       final paths = await Future.wait(
         images.map((file) => CreateRouteCoverStorage.persistPickedFile(file.path)),
       );
-      ref.read(createRouteControllerProvider.notifier).addCoverPaths(paths);
+      await ref.read(createRouteControllerProvider.notifier).addCoverPaths(paths);
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }
@@ -60,7 +60,7 @@ class _CreateRoutePhotosStepState extends ConsumerState<CreateRoutePhotosStep> {
       if (photo == null || !mounted) return;
 
       final path = await CreateRouteCoverStorage.persistPickedFile(photo.path);
-      ref.read(createRouteControllerProvider.notifier).addCoverPaths([path]);
+      await ref.read(createRouteControllerProvider.notifier).addCoverPaths([path]);
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }

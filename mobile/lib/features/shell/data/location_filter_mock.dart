@@ -26,6 +26,7 @@ abstract final class LocationFilterMock {
     LocationFilterOption(id: 'moscow', label: 'Москва'),
     LocationFilterOption(id: 'spb', label: 'Санкт-Петербург'),
     LocationFilterOption(id: 'sochi', label: 'Сочи 🌴'),
+    LocationFilterOption(id: 'astrakhan', label: 'Астрахань'),
     LocationFilterOption(id: 'kazan', label: 'Казань'),
     LocationFilterOption(id: 'ekb', label: 'Екатеринбург'),
     LocationFilterOption(id: 'novosibirsk', label: 'Новосибирск'),

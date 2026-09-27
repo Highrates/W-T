@@ -25,6 +25,7 @@ Future<void> openCreateRouteMapPicker({
   required WidgetRef ref,
   required CreateRouteDraft draft,
   GeoSuggestion? initialPlace,
+  CreateRoutePointRole? forcedRole,
 }) {
   return Navigator.of(context).push<void>(
     MaterialPageRoute<void>(
@@ -32,6 +33,7 @@ Future<void> openCreateRouteMapPicker({
       builder: (context) => CreateRouteMapPickerScreen(
         draft: draft,
         initialPlace: initialPlace,
+        forcedRole: forcedRole,
       ),
     ),
   );
@@ -42,10 +44,12 @@ class CreateRouteMapPickerScreen extends ConsumerStatefulWidget {
     super.key,
     required this.draft,
     this.initialPlace,
+    this.forcedRole,
   });
 
   final CreateRouteDraft draft;
   final GeoSuggestion? initialPlace;
+  final CreateRoutePointRole? forcedRole;
 
   @override
   ConsumerState<CreateRouteMapPickerScreen> createState() =>
@@ -62,7 +66,7 @@ class _CreateRouteMapPickerScreenState
   @override
   void initState() {
     super.initState();
-    _role = defaultCreateRoutePointRole(widget.draft);
+    _role = widget.forcedRole ?? defaultCreateRoutePointRole(widget.draft);
     final initial = widget.initialPlace;
     if (initial != null) {
       _draftPin = initial.location;
@@ -241,6 +245,7 @@ class _CreateRouteMapPickerScreenState
             child: _BottomPanel(
               role: _role,
               onRoleChanged: (role) => setState(() => _role = role),
+              showRolePicker: widget.forcedRole == null,
               title: _draftPreview?.title,
               subtitle: _draftPreview?.subtitle,
               isLoading: _isResolvingLocation,
@@ -259,6 +264,7 @@ class _BottomPanel extends StatelessWidget {
   const _BottomPanel({
     required this.role,
     required this.onRoleChanged,
+    required this.showRolePicker,
     required this.title,
     required this.subtitle,
     required this.isLoading,
@@ -269,6 +275,7 @@ class _BottomPanel extends StatelessWidget {
 
   final CreateRoutePointRole role;
   final ValueChanged<CreateRoutePointRole> onRoleChanged;
+  final bool showRolePicker;
   final String? title;
   final String? subtitle;
   final bool isLoading;
@@ -330,8 +337,10 @@ class _BottomPanel extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ],
-            const SizedBox(height: AppSpacing.s16),
-            _RolePicker(role: role, onChanged: onRoleChanged),
+            if (showRolePicker) ...[
+              const SizedBox(height: AppSpacing.s16),
+              _RolePicker(role: role, onChanged: onRoleChanged),
+            ],
             const SizedBox(height: AppSpacing.s16),
             PrimaryButtonBlack(
               label: createRoutePointAddLabel(role),

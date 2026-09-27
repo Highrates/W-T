@@ -1,4 +1,13 @@
 {
   "MAPKIT_API_KEY": "YOUR_MAPKIT_MOBILE_SDK_KEY",
-  "API_BASE_URL": "http://127.0.0.1:3000/api"
+  "API_BASE_URL": "http://127.0.0.1:3000/api",
+  "USE_MOCK_DATA": "false",
+  "DEV_ACCESS_TOKEN": "",
+  "DEV_FCM_TOKEN": "",
+  "FIREBASE_ENABLED": "false",
+  "FIREBASE_API_KEY": "",
+  "FIREBASE_APP_ID": "",
+  "FIREBASE_MESSAGING_SENDER_ID": "",
+  "FIREBASE_PROJECT_ID": "",
+  "FIREBASE_IOS_BUNDLE_ID": "com.walktalk.app"
 }

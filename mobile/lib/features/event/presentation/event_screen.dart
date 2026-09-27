@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
+import '../../../app/app_router.dart';
+import '../../../core/auth/require_auth.dart';
+import '../../../core/config/api_config.dart';
+import '../../../core/providers/auth_providers.dart';
 import '../../../core/theme/app_glass_tokens.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme_colors.dart';
@@ -64,7 +69,7 @@ class _EventScreenState extends ConsumerState<EventScreen> {
 
   bool get _routeChatEnabled {
     final joinStatuses = ref.watch(participationControllerProvider);
-    final detail = ref.watch(eventDetailProvider(widget.eventId));
+    final detail = ref.watch(eventDetailProvider(widget.eventId)).valueOrNull;
     if (detail == null) return false;
     final status = joinStatuses[widget.eventId] ?? detail.event.joinStatus;
     return status == EventJoinStatus.approved;
@@ -72,7 +77,7 @@ class _EventScreenState extends ConsumerState<EventScreen> {
 
   EventJoinStatus get _joinStatus {
     final joinStatuses = ref.watch(participationControllerProvider);
-    final detail = ref.watch(eventDetailProvider(widget.eventId));
+    final detail = ref.watch(eventDetailProvider(widget.eventId)).valueOrNull;
     if (detail == null) return EventJoinStatus.canJoin;
     return joinStatuses[widget.eventId] ?? detail.event.joinStatus;
   }
@@ -86,29 +91,53 @@ class _EventScreenState extends ConsumerState<EventScreen> {
   }
 
   Future<void> _submitJoin() async {
+    if (!await requireAuth(context)) return;
     setState(() => _isJoinSubmitting = true);
-    await ref
-        .read(participationControllerProvider.notifier)
-        .submitJoin(widget.eventId);
+    try {
+      await ref
+          .read(participationControllerProvider.notifier)
+          .submitJoin(widget.eventId);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
+    }
     if (mounted) setState(() => _isJoinSubmitting = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = ref.watch(eventDetailProvider(widget.eventId));
-    if (data == null) {
-      return Scaffold(
+    final detailAsync = ref.watch(eventDetailProvider(widget.eventId));
+
+    return detailAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('Событие не найдено')),
-      );
-    }
+        body: Center(child: Text('Ошибка загрузки: $error')),
+      ),
+      data: (data) {
+        if (data == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const Center(child: Text('Событие не найдено')),
+          );
+        }
 
-    final event = data.event;
-    final joinStatus = _joinStatus;
-    final colors = context.appColors;
-    final top = MediaQuery.paddingOf(context).top;
+        final event = data.event;
+        final joinStatus = _joinStatus;
+        final colors = context.appColors;
+        final top = MediaQuery.paddingOf(context).top;
+        final currentUserId = ApiConfig.useApi
+            ? ref.watch(authSessionProvider).userId
+            : null;
+        final isOrganizer =
+            currentUserId != null && currentUserId == event.organizerId;
 
-    return HeroDetailScaffold(
+        return HeroDetailScaffold(
       sheetBottomPadding: _listBottomPadding,
       heroBuilder: (context, heroHeight, dotsBottomInset) {
         if (event.coverAssets.isEmpty) {
@@ -173,7 +202,11 @@ class _EventScreenState extends ConsumerState<EventScreen> {
                     semanticLabel: 'Действия',
                     onPressed: () => showEventActionsSheet(
                       context: context,
+                      ref: ref,
+                      eventId: widget.eventId,
                       eventTitle: event.title,
+                      joinStatus: joinStatus,
+                      isOrganizer: isOrganizer,
                     ),
                   ),
                 ),
@@ -191,6 +224,12 @@ class _EventScreenState extends ConsumerState<EventScreen> {
                     isJoinSubmitting: _isJoinSubmitting,
                     routeChatEnabled: _routeChatEnabled,
                     onJoinTap: _submitJoin,
+                    onChatTap: () {
+                      final encodedTitle = Uri.encodeComponent(event.title);
+                      context.push(
+                        '${AppRoutes.eventChatPath(widget.eventId)}?title=$encodedTitle',
+                      );
+                    },
                     onSuccessBannerChanged: (visible) {
                       setState(() => _showSuccessBanner = visible);
                     },
@@ -200,6 +239,8 @@ class _EventScreenState extends ConsumerState<EventScreen> {
             ],
           ),
         );
+      },
+    );
       },
     );
   }

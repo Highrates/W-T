@@ -313,13 +313,16 @@ class MockUserProfileRepository implements UserProfileRepository {
   };
 
   @override
-  UserProfile? getProfile(String userId) => _profiles[userId];
+  Future<UserProfile?> getProfile(String userId) async => _profiles[userId];
 
   @override
-  List<ProfileEventPreview> getGoingEvents(String userId) =>
+  Future<List<ProfileEventPreview>> getGoingEvents(String userId) async =>
       _goingEvents[userId] ?? const [];
 
   @override
-  List<ProfileEventPreview> getGoingPastEvents(String userId) =>
+  Future<List<ProfileEventPreview>> getGoingPastEvents(String userId) async =>
       _goingPastEvents[userId] ?? const [];
+
+  @override
+  Future<String?> updateAvatarUrl(String avatarUrl) async => avatarUrl;
 }

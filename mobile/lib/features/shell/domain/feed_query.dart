@@ -34,6 +34,7 @@ class FeedQuery {
       selectedIds: hotFilterIds,
       formatIds: card.formatIds,
       themeIds: card.themeIds,
+      isOneOnOne: card.isOneOnOne,
     );
   }
 

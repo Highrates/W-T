@@ -242,7 +242,7 @@ class _AppYandexMapState extends State<AppYandexMap> {
   Future<ui.Image> _markerImageFor(AppMapPin pin, double markerSize) {
     return switch (pin.style) {
       AppMapPinStyle.eventPhoto => MapMarkerRenderer.eventPhotoMarker(
-          assetPath: pin.imageAsset ?? 'assets/images/cards/01.jpg',
+          imageRef: pin.imageAsset ?? 'assets/images/cards/01.jpg',
           size: markerSize,
         ),
       AppMapPinStyle.routeWaypoint => MapMarkerRenderer.routeWaypointMarker(

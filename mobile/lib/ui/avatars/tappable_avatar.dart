@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../media/cover_image.dart';
+
 /// Круглый аватар с переходом в профиль.
 class TappableAvatar extends StatelessWidget {
   const TappableAvatar({
@@ -16,22 +18,29 @@ class TappableAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = ClipOval(
-      child: Image.asset(
-        avatarAsset,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-      ),
+      child: coverRefIsAsset(avatarAsset) || coverRefIsNetwork(avatarAsset)
+          ? CoverImage(
+              ref: avatarAsset,
+              fit: BoxFit.cover,
+            )
+          : Image.asset(
+              avatarAsset,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+            ),
     );
 
-    if (onTap == null) return image;
+    final sized = SizedBox(width: size, height: size, child: image);
+
+    if (onTap == null) return sized;
 
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: image,
+        child: sized,
       ),
     );
   }

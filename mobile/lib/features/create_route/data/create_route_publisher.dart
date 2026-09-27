@@ -35,6 +35,7 @@ abstract final class CreateRoutePublisher {
       tags: tags,
       formatIds: draft.formatIds.toList(),
       themeIds: draft.themeIds.toList(),
+      isOneOnOne: draft.isOneOnOne,
       ctaLabel: draft.joinMode == CreateRouteJoinMode.approval
           ? 'Отправить заявку'
           : 'Присоединиться!',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/require_auth.dart';
 import '../../event/presentation/open_event.dart';
 import '../../participation/application/participation_controller.dart';
 import '../../profile/presentation/open_user_profile.dart';
@@ -52,8 +53,17 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
   }
 
   Future<void> _submitJoin(String eventId) async {
+    if (!await requireAuth(context)) return;
     setState(() => _submittingEventId = eventId);
-    await ref.read(participationControllerProvider.notifier).submitJoin(eventId);
+    try {
+      await ref.read(participationControllerProvider.notifier).submitJoin(eventId);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
+    }
     if (mounted) setState(() => _submittingEventId = null);
   }
 
@@ -88,7 +98,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final safeTop = MediaQuery.paddingOf(context).top;
-    final feed = ref.watch(feedControllerProvider);
+    final feedAsync = ref.watch(feedControllerProvider);
     final query = ref.watch(feedQueryControllerProvider);
     final queryController = ref.read(feedQueryControllerProvider.notifier);
     final bottomPadding = AppBottomNavBar.barHeight +
@@ -100,7 +110,24 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
       onToggle: queryController.toggleHotFilter,
     );
 
-    return ColoredBox(
+    return feedAsync.when(
+      loading: () => ColoredBox(
+        color: colors.feedBackground,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => ColoredBox(
+        color: colors.feedBackground,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: Text(
+              'Не удалось загрузить ленту\n$error',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+      data: (feed) => ColoredBox(
       color: colors.feedBackground,
       child: Stack(
         fit: StackFit.expand,
@@ -193,6 +220,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
             ),
         ],
       ),
+    ),
     );
   }
 }

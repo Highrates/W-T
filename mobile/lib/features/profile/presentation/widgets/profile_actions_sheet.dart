@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/auth/require_auth.dart';
+import '../../../../core/providers/repository_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../ui/navigation/app_menu_sheet.dart';
+import '../../../reports/presentation/report_reason_sheet.dart';
 
 Future<void> showProfileActionsSheet({
   required BuildContext context,
+  required WidgetRef ref,
+  required String targetUserId,
   required String profileName,
 }) {
   return showModalBottomSheet<void>(
@@ -48,11 +54,26 @@ Future<void> showProfileActionsSheet({
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () {
+                  onTap: () async {
                     Navigator.of(sheetContext).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Жалоба на $profileName')),
-                    );
+                    if (!await requireAuth(context)) return;
+                    final reason = await pickReportReason(context);
+                    if (reason == null || !context.mounted) return;
+                    try {
+                      await ref.read(reportsRepositoryProvider).submitReport(
+                            targetUserId: targetUserId,
+                            reason: reason,
+                          );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Жалоба на $profileName отправлена')),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$e')),
+                      );
+                    }
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(

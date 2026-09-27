@@ -90,6 +90,76 @@ abstract final class EventRoutePointsMock {
               description: 'Финальная точка — встречаем закат вместе.',
             ),
           ],
+        'banya-chill' => const [
+            EventRoutePoint(
+              title: 'Баня',
+              location: GeoPoint(latitude: 43.5768, longitude: 39.7156),
+              detail: '16:00 · Сбор у входа',
+              description:
+                  'Встречаемся у входа и сразу заходим. Пар, чай, свои '
+                  'разговоры — без прогулок.',
+              photoAssets: ['$_cards/banya.jpg'],
+            ),
+          ],
+        'beer-bar' => const [
+            EventRoutePoint(
+              title: 'Пивной бар',
+              location: GeoPoint(latitude: 43.5801, longitude: 39.7210),
+              detail: '19:30 · Сбор',
+              description: 'Ждём у входа, дальше берём столик.',
+              photoAssets: ['$_cards/bar.jpg'],
+            ),
+          ],
+        'astrakhan-fishing' => const [
+            EventRoutePoint(
+              title: 'Сбор у причала',
+              location: GeoPoint(latitude: 46.3512, longitude: 48.0524),
+              address: 'Астрахань',
+              detail: '5:30',
+              description: 'Проверяем снасти и выходим на воду.',
+              photoAssets: ['$_cards/fishing.jpg'],
+            ),
+            EventRoutePoint(
+              title: 'Точка ловли',
+              location: GeoPoint(latitude: 46.3620, longitude: 48.0710),
+              detail: 'Утро на воде',
+              description: 'Основная точка рыбалки.',
+            ),
+          ],
+        'astrakhan-embankment' => const [
+            EventRoutePoint(
+              title: 'Набережная Волги',
+              location: GeoPoint(latitude: 46.3491, longitude: 48.0398),
+              address: 'Астрахань',
+              detail: '18:00 · Старт',
+              description: 'Сбор у парапета, дальше вдоль воды.',
+              photoAssets: ['$_cards/11.jpg'],
+            ),
+            EventRoutePoint(
+              title: 'Кофе на закате',
+              location: GeoPoint(latitude: 46.3518, longitude: 48.0415),
+              detail: 'Остановка',
+              description: 'Короткая пауза с видом на Волгу.',
+              photoAssets: ['$_cards/12.jpg'],
+            ),
+          ],
+        'pool-krasnaya-polyana' => const [
+            EventRoutePoint(
+              title: 'Парковка / сбор',
+              location: GeoPoint(latitude: 43.6789, longitude: 40.2045),
+              address: 'Красная Поляна',
+              detail: '12:00',
+              description: 'Сбор у входа, дальше к бассейну.',
+              photoAssets: ['$_cards/pool-kp.jpg'],
+            ),
+            EventRoutePoint(
+              title: 'Бассейн',
+              location: GeoPoint(latitude: 43.6802, longitude: 40.2088),
+              detail: 'Купание',
+              description: 'Основная точка — бассейн с видом на горы.',
+              photoAssets: ['$_cards/pool-kp.jpg'],
+            ),
+          ],
         _ => const [
             EventRoutePoint(
               title: 'Старт',

@@ -26,6 +26,7 @@ class EventCardData {
     this.tags = const [],
     this.formatIds = const [],
     this.themeIds = const [],
+    this.isOneOnOne = false,
   });
 
   final String id;
@@ -54,6 +55,9 @@ class EventCardData {
 
   /// Фильтры ленты: theme axis.
   final List<String> themeIds;
+
+  /// Формат участия: 1×1 vs группа.
+  final bool isOneOnOne;
 
   bool get hasCoverPhotos => coverAssets.isNotEmpty;
 
@@ -90,6 +94,7 @@ class EventCardData {
     List<String>? tags,
     List<String>? formatIds,
     List<String>? themeIds,
+    bool? isOneOnOne,
   }) {
     return EventCardData(
       id: id,
@@ -112,6 +117,7 @@ class EventCardData {
       tags: tags ?? this.tags,
       formatIds: formatIds ?? this.formatIds,
       themeIds: themeIds ?? this.themeIds,
+      isOneOnOne: isOneOnOne ?? this.isOneOnOne,
     );
   }
 }

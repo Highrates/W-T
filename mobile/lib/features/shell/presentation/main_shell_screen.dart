@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/api_config.dart';
+import '../../../core/providers/auth_providers.dart';
 import '../../../core/providers/repository_providers.dart';
+import '../../profile/application/user_profile_provider.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../ui/navigation/app_bottom_nav_bar.dart';
 import '../../../ui/navigation/app_menu_sheet.dart';
@@ -38,9 +41,14 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   @override
   Widget build(BuildContext context) {
     final safeBottom = MediaQuery.paddingOf(context).bottom;
-    final profiles = ref.read(userProfileRepositoryProvider);
-    final currentUser = profiles.getProfile(profiles.currentUserId);
-    final profileAvatar = currentUser?.avatarAsset ??
+    final auth = ref.watch(authSessionProvider);
+    final currentUserId = ApiConfig.useApi
+        ? auth.userId
+        : ref.read(userProfileRepositoryProvider).currentUserId;
+    final profileAsync = currentUserId != null
+        ? ref.watch(userProfileProvider(currentUserId))
+        : null;
+    final profileAvatar = profileAsync?.valueOrNull?.avatarAsset ??
         'assets/images/people/02.jpg';
     final query = ref.watch(feedQueryControllerProvider);
     final queryController = ref.read(feedQueryControllerProvider.notifier);
@@ -143,7 +151,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     showAppMenuSheet(context: context);
   }
 
-  void _onProfileTap() {
-    openMyProfile(context);
+  Future<void> _onProfileTap() async {
+    await openMyProfile(context);
   }
 }

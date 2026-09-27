@@ -1,5 +1,6 @@
-/// Ось фильтра ленты: формат (как идём) или тема (что делаем).
+/// Ось фильтра ленты: участие, формат (как идём) или тема (что делаем).
 enum FeedFilterAxis {
+  participation,
   format,
   theme,
 }
@@ -26,6 +27,9 @@ class FeedHotFilter {
 /// **Формат:** одна основная ось — пешком или на авто.
 /// **Тема:** взаимоисключающие «ведущие» категории; у события может быть 1–2 темы.
 abstract final class FeedHotFilterMock {
+  static const String oneOnOneId = 'one_on_one';
+  static const String groupId = 'group';
+
   static const String walkId = 'walk';
   static const String driveId = 'drive';
 
@@ -41,6 +45,22 @@ abstract final class FeedHotFilterMock {
   static const String kidsId = 'kids';
   static const String nightId = 'night';
   static const String dogId = 'dog';
+
+  /// Первые чипы ленты: 1×1 / группа (до дивидера).
+  static const List<FeedHotFilter> participationFilters = [
+    FeedHotFilter(
+      id: oneOnOneId,
+      label: '🤝 1×1',
+      axis: FeedFilterAxis.participation,
+      hint: 'Ищу одного спутника',
+    ),
+    FeedHotFilter(
+      id: groupId,
+      label: '👥 Группа',
+      axis: FeedFilterAxis.participation,
+      hint: 'Групповое событие',
+    ),
+  ];
 
   static const List<FeedHotFilter> formatFilters = [
     FeedHotFilter(
@@ -130,22 +150,35 @@ abstract final class FeedHotFilterMock {
     ),
   ];
 
+  /// Лента: участие → формат → тема.
   static List<FeedHotFilter> get all => [
+        ...participationFilters,
         ...formatFilters,
         ...themeFilters,
       ];
 
+  /// Чипы после дивидера в ленте (без 1×1 / группы).
+  static List<FeedHotFilter> get feedAfterDivider => [
+        ...formatFilters,
+        ...themeFilters,
+      ];
+
+  /// Wizard: формат/тема (+ extras), без оси участия (там отдельные сегменты).
   static List<FeedHotFilter> get createRouteAll => [
-        ...all,
+        ...formatFilters,
+        ...themeFilters,
         ...createRouteExtraFilters,
       ];
 
   static FeedHotFilter? byId(String id) {
-    for (final filter in createRouteAll) {
+    for (final filter in [...all, ...createRouteExtraFilters]) {
       if (filter.id == id) return filter;
     }
     return null;
   }
+
+  static bool isParticipationId(String id) =>
+      participationFilters.any((filter) => filter.id == id);
 
   static bool isFormatId(String id) =>
       formatFilters.any((filter) => filter.id == id);
@@ -159,13 +192,20 @@ abstract final class FeedHotFilterMock {
     required Set<String> selectedIds,
     required List<String> formatIds,
     required List<String> themeIds,
+    required bool isOneOnOne,
   }) {
     if (selectedIds.isEmpty) return true;
 
+    final participation = selectedIds.where(isParticipationId).toSet();
     final formats = selectedIds.where(isFormatId).toSet();
-    final themes = selectedIds
-        .where((id) => themeFilters.any((filter) => filter.id == id))
-        .toSet();
+    final themes = selectedIds.where(isThemeId).toSet();
+
+    if (participation.isNotEmpty) {
+      final wantOne = participation.contains(oneOnOneId);
+      final wantGroup = participation.contains(groupId);
+      if (wantOne && !wantGroup && !isOneOnOne) return false;
+      if (wantGroup && !wantOne && isOneOnOne) return false;
+    }
 
     if (formats.isNotEmpty && !formatIds.any(formats.contains)) {
       return false;

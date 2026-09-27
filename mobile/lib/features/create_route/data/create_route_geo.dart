@@ -25,6 +25,11 @@ abstract final class CreateRouteGeo {
       center: GeoPoint(latitude: 55.7961, longitude: 49.1064),
       radiusKm: 40,
     ),
+    (
+      id: 'astrakhan',
+      center: GeoPoint(latitude: 46.3497, longitude: 48.0408),
+      radiusKm: 50,
+    ),
   ];
 
   /// Город карточки в ленте = город точки старта.

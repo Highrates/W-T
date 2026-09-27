@@ -30,7 +30,7 @@ Future<void> showPublishedRouteSheet({
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Маршрут опубликован',
+              'Событие опубликовано',
               style: AppTextStyles.text18_600(color: colors.text),
             ),
             const SizedBox(height: AppSpacing.s8),
@@ -41,7 +41,7 @@ Future<void> showPublishedRouteSheet({
             ),
             const SizedBox(height: AppSpacing.s24),
             PrimaryButtonBlack(
-              label: 'Посмотреть маршрут',
+              label: 'Посмотреть событие',
               onPressed: () {
                 Navigator.pop(context);
               },

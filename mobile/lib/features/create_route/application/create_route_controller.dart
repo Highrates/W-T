@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/api_config.dart';
 import '../../../core/providers/repository_providers.dart';
+import '../data/media_upload_service.dart';
 import '../../../features/event/data/event_route_points_mock.dart';
 import '../../../features/shell/application/feed_controller.dart';
 import '../../../features/shell/data/feed_filter_mock.dart';
@@ -25,7 +27,7 @@ final createRouteDraftExistsProvider = FutureProvider<bool>((ref) async {
 
 class CreateRouteWizardState {
   const CreateRouteWizardState({
-    this.step = CreateRouteStep.source,
+    this.step = CreateRouteStep.compose,
     this.draft = const CreateRouteDraft(),
     this.isPublishing = false,
   });
@@ -49,7 +51,18 @@ class CreateRouteWizardState {
 
 class CreateRouteController extends Notifier<CreateRouteWizardState> {
   @override
-  CreateRouteWizardState build() => const CreateRouteWizardState();
+  CreateRouteWizardState build() {
+    return CreateRouteWizardState(draft: _defaultDraft());
+  }
+
+  static CreateRouteDraft _defaultDraft() {
+    return CreateRouteDraft(
+      formatIds: {FeedHotFilterMock.walkId},
+      scheduledAt: DateTime.now().add(const Duration(hours: 2)),
+      joinMode: defaultCreateRouteJoinMode(isOneOnOne: false),
+      maxParticipants: 6,
+    );
+  }
 
   CreateRouteDraftStorage get _storage =>
       ref.read(createRouteDraftStorageProvider);
@@ -60,7 +73,7 @@ class CreateRouteController extends Notifier<CreateRouteWizardState> {
   }
 
   void reset() {
-    _commit(const CreateRouteWizardState());
+    _commit(CreateRouteWizardState(draft: _defaultDraft()));
   }
 
   Future<void> discardDraft() async {
@@ -285,9 +298,35 @@ class CreateRouteController extends Notifier<CreateRouteWizardState> {
     _commit(state.copyWith(draft: state.draft.copyWith(coverAssets: assets)));
   }
 
-  void addCoverPaths(List<String> paths) {
+  Future<void> addCoverPaths(List<String> paths) async {
     if (paths.isEmpty) return;
-    setCoverAssets([...state.draft.coverAssets, ...paths]);
+
+    final refs = ApiConfig.useApi
+        ? await ref.read(mediaUploadServiceProvider).uploadLocalFiles(
+              paths,
+              UploadMediaPurpose.cover,
+            )
+        : paths;
+
+    setCoverAssets([...state.draft.coverAssets, ...refs]);
+  }
+
+  Future<void> addPointPhotoPaths(int pointIndex, List<String> paths) async {
+    if (paths.isEmpty) return;
+    if (pointIndex < 0 || pointIndex >= state.draft.points.length) return;
+
+    final refs = ApiConfig.useApi
+        ? await ref.read(mediaUploadServiceProvider).uploadLocalFiles(
+              paths,
+              UploadMediaPurpose.point,
+            )
+        : paths;
+
+    final point = state.draft.points[pointIndex];
+    updatePointAt(
+      pointIndex,
+      point.copyWith(photoAssets: [...point.photoAssets, ...refs]),
+    );
   }
 
   void removeCoverAt(int index) {
@@ -317,33 +356,18 @@ class CreateRouteController extends Notifier<CreateRouteWizardState> {
   String? validateStep(CreateRouteStep step) {
     final draft = state.draft;
     return switch (step) {
-      CreateRouteStep.source => switch (draft.source) {
-          CreateRouteSource.fromPrevious when draft.sourceEventId == null =>
-            'Выберите прошлый маршрут',
-          CreateRouteSource.fromTemplate when draft.sourceEventId == null =>
-            'Выберите шаблон',
-          _ => null,
-        },
-      CreateRouteStep.formatAndTheme =>
-        draft.hotFilterIds.isEmpty ? 'Выберите хотя бы один тег' : null,
-      CreateRouteStep.basics =>
-        draft.title.trim().isEmpty ? 'Укажите название' : null,
-      CreateRouteStep.schedule =>
-        draft.scheduledAt == null ? 'Укажите дату и время' : null,
-      CreateRouteStep.routePoints =>
-        !draft.hasStartPoint || !draft.hasFinishPoint
-            ? 'Нужны точки старта и финиша'
-            : draft.startPoint == null
-                ? 'Добавьте точку старта'
-                : null,
-      CreateRouteStep.pointDetails => null,
-      CreateRouteStep.photos => null,
-      CreateRouteStep.participation =>
-        !draft.isOneOnOne &&
-                (draft.maxParticipants == null || draft.maxParticipants! < 2)
-            ? 'Укажите лимит от 2 человек'
-            : null,
-      CreateRouteStep.review => null,
+      CreateRouteStep.compose =>
+        draft.title.trim().isEmpty
+            ? 'Укажите название'
+            : draft.scheduledAt == null
+                ? 'Укажите дату и время'
+                : draft.hotFilterIds.isEmpty
+                    ? 'Выберите формат или тему'
+                    : !draft.hasStartPoint
+                        ? 'Добавьте точку старта'
+                        : null,
+      CreateRouteStep.route =>
+        !draft.hasStartPoint ? 'Добавьте точку старта' : null,
     };
   }
 
@@ -352,10 +376,7 @@ class CreateRouteController extends Notifier<CreateRouteWizardState> {
     if (error != null) return false;
     final next = state.step.next;
     if (next == null) return false;
-    final draft = next == CreateRouteStep.basics
-        ? state.draft.copyWith(description: '')
-        : state.draft;
-    _commit(state.copyWith(step: next, draft: draft));
+    _commit(state.copyWith(step: next));
     return true;
   }
 
@@ -366,25 +387,35 @@ class CreateRouteController extends Notifier<CreateRouteWizardState> {
   }
 
   Future<String?> publish() async {
-    final error = validateStep(CreateRouteStep.review);
+    final error = validateStep(CreateRouteStep.compose);
     if (error != null) return null;
 
     _commit(state.copyWith(isPublishing: true));
-    await Future<void>.delayed(const Duration(milliseconds: 600));
 
-    final draft = state.draft.copyWith(
-      cityId: _cityFromStart(state.draft.points) ?? state.draft.cityId,
-    );
+    try {
+      var draft = state.draft.copyWith(
+        cityId: _cityFromStart(state.draft.points) ?? state.draft.cityId,
+      );
 
-    final eventId =
-        ref.read(eventRepositoryProvider).publishFromDraft(draft);
+      if (ApiConfig.useApi) {
+        draft = await ref
+            .read(mediaUploadServiceProvider)
+            .prepareDraftForPublish(draft);
+      }
 
-    await _storage.clear();
-    ref.invalidate(feedControllerProvider);
-    ref.invalidate(createRouteDraftExistsProvider);
+      final eventId =
+          await ref.read(eventRepositoryProvider).publishFromDraft(draft);
 
-    _commit(const CreateRouteWizardState());
-    return eventId;
+      await _storage.clear();
+      ref.invalidate(feedControllerProvider);
+      ref.invalidate(createRouteDraftExistsProvider);
+
+      _commit(CreateRouteWizardState(draft: _defaultDraft()));
+      return eventId;
+    } catch (_) {
+      _commit(state.copyWith(isPublishing: false));
+      rethrow;
+    }
   }
 
   CreateRouteDraft _freshParticipationDefaults() {

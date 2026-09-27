@@ -11,6 +11,7 @@ import '../../event/presentation/widgets/event_glass_back_button.dart';
 import '../../event/presentation/widgets/event_glass_icon_button.dart';
 import '../application/my_page_provider.dart';
 import 'widgets/my_profile_sheet_content.dart';
+import 'widgets/profile_avatar_edit_button.dart';
 
 /// «Моя страница» — кабинет текущего пользователя (не публичный профиль).
 class MyProfileScreen extends ConsumerWidget {
@@ -33,11 +34,21 @@ class MyProfileScreen extends ConsumerWidget {
 
         return HeroDetailScaffold(
           heroBuilder: (context, heroHeight, dotsBottomInset) {
-            return CoverCarousel(
-              height: heroHeight,
-              coverAssets: profile.heroPhotoAssets,
-              dotsBottomInset: dotsBottomInset,
-              dotsVariant: CoverPageDotsVariant.pill,
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                CoverCarousel(
+                  height: heroHeight,
+                  coverAssets: profile.heroPhotoAssets,
+                  dotsBottomInset: dotsBottomInset,
+                  dotsVariant: CoverPageDotsVariant.pill,
+                ),
+                Positioned(
+                  right: AppSpacing.paddingGlobal,
+                  bottom: dotsBottomInset + AppSpacing.s12,
+                  child: const ProfileAvatarEditButton(),
+                ),
+              ],
             );
           },
           sheetBuilder: (context, scrollController, bottomPadding) {
@@ -48,6 +59,7 @@ class MyProfileScreen extends ConsumerWidget {
               goingUpcoming: page.goingUpcoming,
               goingPast: page.goingPast,
               routeDraft: page.routeDraft,
+              templates: page.templates,
               scrollController: scrollController,
               bottomPadding: bottomPadding,
             );

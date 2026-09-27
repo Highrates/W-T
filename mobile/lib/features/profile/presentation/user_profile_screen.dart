@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
 import '../../../app/app_router.dart';
+import '../../../core/config/api_config.dart';
+import '../../../core/providers/auth_providers.dart';
 import '../../../core/providers/repository_providers.dart';
 
 import '../../../core/theme/app_glass_tokens.dart';
@@ -39,8 +41,10 @@ class UserProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentUserId = ref.read(userProfileRepositoryProvider).currentUserId;
-    if (userId == currentUserId) {
+    final currentUserId = ApiConfig.useApi
+        ? ref.read(authSessionProvider).userId
+        : ref.read(userProfileRepositoryProvider).currentUserId;
+    if (currentUserId != null && userId == currentUserId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) context.go(AppRoutes.me);
       });
@@ -49,15 +53,25 @@ class UserProfileScreen extends ConsumerWidget {
       );
     }
 
-    final profile = ref.watch(userProfileProvider(userId));
-    if (profile == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Профиль не найден')),
-      );
-    }
+    final profileAsync = ref.watch(userProfileProvider(userId));
 
-    return HeroDetailScaffold(
+    return profileAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text('Ошибка: $error')),
+      ),
+      data: (profile) {
+        if (profile == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const Center(child: Text('Профиль не найден')),
+          );
+        }
+
+        return HeroDetailScaffold(
       heroBuilder: (context, heroHeight, dotsBottomInset) {
         return CoverCarousel(
           height: heroHeight,
@@ -100,6 +114,8 @@ class UserProfileScreen extends ConsumerWidget {
                     semanticLabel: 'Действия',
                     onPressed: () => showProfileActionsSheet(
                       context: context,
+                      ref: ref,
+                      targetUserId: userId,
                       profileName: profile.name,
                     ),
                   ),
@@ -108,6 +124,8 @@ class UserProfileScreen extends ConsumerWidget {
             ),
           ),
         );
+      },
+    );
       },
     );
   }

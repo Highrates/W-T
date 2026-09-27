@@ -5,8 +5,10 @@ import '../domain/create_route_source.dart';
 import '../domain/create_route_step.dart';
 import '../application/create_route_controller.dart';
 
-/// JSON-сериализация черновика wizard (local storage).
+/// JSON-сериализация черновика wizard (local storage + `/drafts/me`).
 abstract final class CreateRouteDraftCodec {
+  static const int schemaVersion = 1;
+
   static Map<String, dynamic> encodeWizard(CreateRouteWizardState state) {
     return {
       'step': state.step.name,
@@ -19,9 +21,7 @@ abstract final class CreateRouteDraftCodec {
     final draftJson = json['draft'];
     if (stepName == null || draftJson is! Map<String, dynamic>) return null;
 
-    final step = CreateRouteStep.values
-        .where((value) => value.name == stepName)
-        .firstOrNull;
+    final step = CreateRouteStep.fromStorageName(stepName);
     final draft = decodeDraft(draftJson);
     if (step == null || draft == null) return null;
 
@@ -30,6 +30,7 @@ abstract final class CreateRouteDraftCodec {
 
   static Map<String, dynamic> encodeDraft(CreateRouteDraft draft) {
     return {
+      'schemaVersion': schemaVersion,
       'source': draft.source.name,
       'sourceEventId': draft.sourceEventId,
       'formatIds': draft.formatIds.toList(),
@@ -48,6 +49,9 @@ abstract final class CreateRouteDraftCodec {
   }
 
   static CreateRouteDraft? decodeDraft(Map<String, dynamic> json) {
+    final version = json['schemaVersion'] as int? ?? schemaVersion;
+    if (version > schemaVersion) return null;
+
     final source = CreateRouteSource.values
         .where((value) => value.name == json['source'])
         .firstOrNull;

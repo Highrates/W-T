@@ -41,6 +41,7 @@ abstract final class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: colors.background,
         foregroundColor: colors.text,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle(

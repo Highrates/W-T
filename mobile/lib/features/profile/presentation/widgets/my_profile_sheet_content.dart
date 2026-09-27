@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/repository_providers.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -10,11 +12,13 @@ import '../../../../ui/buttons/secondary_button.dart';
 import '../../../../ui/icons/location_icon.dart';
 import '../../../create_route/presentation/open_create_route.dart';
 import '../../../event/presentation/open_event.dart';
+import '../../../templates/domain/route_template_summary.dart';
+import '../../../templates/presentation/template_spawn_sheet.dart';
 import '../../../event/presentation/widgets/event_sheet_right_inset.dart';
 import '../../domain/route_draft_summary.dart';
 import 'profile_event_preview_card.dart';
 
-class MyProfileSheetContent extends StatefulWidget {
+class MyProfileSheetContent extends ConsumerStatefulWidget {
   const MyProfileSheetContent({
     super.key,
     required this.profile,
@@ -25,6 +29,7 @@ class MyProfileSheetContent extends StatefulWidget {
     required this.scrollController,
     required this.bottomPadding,
     this.routeDraft,
+    this.templates = const [],
   });
 
   final UserProfile profile;
@@ -33,14 +38,16 @@ class MyProfileSheetContent extends StatefulWidget {
   final List<ProfileEventPreview> goingUpcoming;
   final List<ProfileEventPreview> goingPast;
   final RouteDraftSummary? routeDraft;
+  final List<RouteTemplateSummary> templates;
   final ScrollController scrollController;
   final double bottomPadding;
 
   @override
-  State<MyProfileSheetContent> createState() => _MyProfileSheetContentState();
+  ConsumerState<MyProfileSheetContent> createState() =>
+      _MyProfileSheetContentState();
 }
 
-class _MyProfileSheetContentState extends State<MyProfileSheetContent> {
+class _MyProfileSheetContentState extends ConsumerState<MyProfileSheetContent> {
   var _pastExpanded = false;
 
   void _openEvent(String eventId, {required bool isPast}) {
@@ -55,6 +62,25 @@ class _MyProfileSheetContentState extends State<MyProfileSheetContent> {
 
   void _placeholder(String label) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
+  }
+
+  Future<void> _spawnTemplate(RouteTemplateSummary template) async {
+    final scheduledAt = await pickTemplateSpawnSchedule(context, template);
+    if (scheduledAt == null || !mounted) return;
+
+    try {
+      final eventId = await ref.read(templatesRepositoryProvider).spawnOccurrence(
+            template.id,
+            scheduledAt: scheduledAt,
+          );
+      if (!mounted || eventId.isEmpty) return;
+      openEvent(context, eventId, justPublished: true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось создать событие: $e')),
+      );
+    }
   }
 
   @override
@@ -155,7 +181,7 @@ class _MyProfileSheetContentState extends State<MyProfileSheetContent> {
         const EventSheetRightInset(child: SizedBox(height: AppSpacing.s16)),
         EventSheetRightInset(
           child: SecondaryButton(
-            label: 'Создать маршрут',
+            label: 'Создать событие',
             icon: const Icon(Icons.add_rounded),
             expanded: true,
             onPressed: () => openCreateRoute(context),
@@ -196,6 +222,26 @@ class _MyProfileSheetContentState extends State<MyProfileSheetContent> {
               onContinue: () => openCreateRoute(context),
             ),
           ),
+        ],
+        if (widget.templates.isNotEmpty) ...[
+          const EventSheetRightInset(child: SizedBox(height: AppSpacing.s24)),
+          EventSheetRightInset(
+            child: Text(
+              'Шаблоны',
+              style: AppTextStyles.text18_600(color: colors.text),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          for (final template in widget.templates)
+            EventSheetRightInset(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                child: _TemplateCard(
+                  template: template,
+                  onSpawn: () => _spawnTemplate(template),
+                ),
+              ),
+            ),
         ],
         if (widget.hostingUpcoming.isNotEmpty) ...[
           const EventSheetRightInset(child: SizedBox(height: AppSpacing.s24)),
@@ -294,6 +340,59 @@ class _MyProfileSheetContentState extends State<MyProfileSheetContent> {
           ],
         ],
       ],
+    );
+  }
+}
+
+class _TemplateCard extends StatelessWidget {
+  const _TemplateCard({required this.template, required this.onSpawn});
+
+  final RouteTemplateSummary template;
+  final VoidCallback onSpawn;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+
+    return Material(
+      color: colors.secondBackground,
+      borderRadius: BorderRadius.circular(AppRadius.r12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onSpawn,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.s12),
+          child: Row(
+            children: [
+              Icon(Icons.copy_all_outlined, color: colors.accent),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      template.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.text15_450(color: colors.text),
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(
+                      '${template.pointCount} точек'
+                      '${template.cityId != null ? ' · ${template.cityId}' : ''}',
+                      style: AppTextStyles.text13_400(color: colors.caption),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                'Создать',
+                style: AppTextStyles.text13_400(color: colors.accent),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

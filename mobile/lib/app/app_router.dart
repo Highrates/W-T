@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/presentation/auth_screen.dart';
+import '../features/chat/presentation/chat_screen.dart';
 import '../features/create_route/presentation/create_route_screen.dart';
 import '../features/create_route/presentation/route_template_screen.dart';
 import '../features/event/presentation/event_screen.dart';
@@ -15,9 +17,12 @@ abstract final class AppRoutes {
   static const profile = '/profile/:id';
   static const me = '/me';
   static const createRoute = '/create-route';
+  static const auth = '/auth';
   static const routeTemplate = '/event/:id/template';
+  static const eventChat = '/event/:id/chat';
 
   static String eventPath(String id) => '/event/$id';
+  static String eventChatPath(String id) => '/event/$id/chat';
   static String profilePath(String id) => '/profile/$id';
   static String publishedEventPath(String id) => '/event/$id?published=1';
   static String routeTemplatePath(String eventId) => '/event/$eventId/template';
@@ -42,6 +47,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return EventScreen(eventId: id, justPublished: justPublished);
         },
         routes: [
+          GoRoute(
+            path: 'chat',
+            builder: (context, state) {
+              final id = state.pathParameters['id'];
+              if (id == null || id.isEmpty) {
+                return const _RouteErrorScreen(message: 'Событие не найдено');
+              }
+              final title = state.uri.queryParameters['title'];
+              return ChatScreen(occurrenceId: id, title: title);
+            },
+          ),
           GoRoute(
             path: 'template',
             builder: (context, state) {
@@ -71,6 +87,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.createRoute,
         builder: (context, state) => const CreateRouteScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.auth,
+        builder: (context, state) => const AuthScreen(),
       ),
     ],
   );

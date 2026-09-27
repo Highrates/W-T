@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/config/api_config.dart';
+import '../../core/providers/auth_providers.dart';
+import '../../features/auth/presentation/open_auth.dart';
 import '../../features/create_route/presentation/open_create_route.dart';
 import '../../features/profile/presentation/open_my_profile.dart';
 import '../../core/theme/app_radius.dart';
@@ -37,7 +41,7 @@ Future<void> showAppMenuSheet({required BuildContext context}) {
 
       return SizedBox(
         height: sheetHeight,
-        child: const _AppMenuSheet(),
+        child: const _AppMenuSheetBody(),
       );
     },
   );
@@ -50,12 +54,12 @@ class _MenuItem {
   final String? iconAsset;
 }
 
-class _AppMenuSheet extends StatelessWidget {
-  const _AppMenuSheet();
+class _AppMenuSheetBody extends ConsumerWidget {
+  const _AppMenuSheetBody();
 
   static const _mainItems = <_MenuItem>[
     _MenuItem(
-      label: 'Создать маршрут',
+      label: 'Создать событие',
       iconAsset: '$_menuIconBase/routing.svg',
     ),
     _MenuItem(
@@ -91,9 +95,11 @@ class _AppMenuSheet extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.appColors;
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final isAuthenticated = ref.watch(authSessionProvider).isAuthenticated;
+    final showAuthActions = ApiConfig.useApi;
 
     return SafeArea(
       top: false,
@@ -122,13 +128,24 @@ class _AppMenuSheet extends StatelessWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
+                  if (showAuthActions && !isAuthenticated) ...[
+                    _MenuRow(
+                      label: 'Войти',
+                      iconAsset: '$_menuIconBase/profile-circle.svg',
+                      style: AppTextStyles.text18_600(color: colors.text),
+                      iconColor: colors.caption,
+                      onTap: () => _onItemTap(context, ref, 'Войти'),
+                    ),
+                    const SizedBox(height: AppSpacing.s24),
+                  ],
                   for (var i = 0; i < _mainItems.length; i++) ...[
                     _MenuRow(
                       label: _mainItems[i].label,
                       iconAsset: _mainItems[i].iconAsset,
                       style: AppTextStyles.text18_600(color: colors.text),
                       iconColor: colors.caption,
-                      onTap: () => _onItemTap(context, _mainItems[i].label),
+                      onTap: () =>
+                          _onItemTap(context, ref, _mainItems[i].label),
                     ),
                     if (i < _mainItems.length - 1)
                       const SizedBox(height: AppSpacing.s12),
@@ -145,10 +162,25 @@ class _AppMenuSheet extends StatelessWidget {
                       label: _legalItems[i],
                       style: AppTextStyles.text13_400(color: colors.caption),
                       compact: true,
-                      onTap: () => _onItemTap(context, _legalItems[i]),
+                      onTap: () => _onItemTap(context, ref, _legalItems[i]),
                     ),
                     if (i < _legalItems.length - 1)
                       const SizedBox(height: AppSpacing.s4),
+                  ],
+                  if (showAuthActions && isAuthenticated) ...[
+                    const SizedBox(height: AppSpacing.s24),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: colors.caption.withValues(alpha: 0.2),
+                    ),
+                    const SizedBox(height: AppSpacing.s24),
+                    _MenuRow(
+                      label: 'Выйти',
+                      style: AppTextStyles.text13_400(color: colors.caption),
+                      compact: true,
+                      onTap: () => _onItemTap(context, ref, 'Выйти'),
+                    ),
                   ],
                 ],
               ),
@@ -159,14 +191,32 @@ class _AppMenuSheet extends StatelessWidget {
     );
   }
 
-  void _onItemTap(BuildContext context, String label) {
+  Future<void> _onItemTap(
+    BuildContext context,
+    WidgetRef ref,
+    String label,
+  ) async {
     Navigator.of(context).pop();
-    if (label == 'Создать маршрут') {
-      openCreateRoute(context);
+
+    if (label == 'Войти') {
+      await openAuth(context);
+      return;
+    }
+    if (label == 'Выйти') {
+      await ref.read(authSessionProvider.notifier).clear();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Вы вышли из аккаунта')),
+        );
+      }
+      return;
+    }
+    if (label == 'Создать событие') {
+      await openCreateRoute(context);
       return;
     }
     if (label == 'Моя страница') {
-      openMyProfile(context);
+      await openMyProfile(context);
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(

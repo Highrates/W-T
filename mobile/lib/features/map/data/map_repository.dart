@@ -3,5 +3,5 @@ import '../../shell/domain/feed_query.dart';
 
 /// Пины событий на карте.
 abstract interface class MapRepository {
-  List<MapOccurrencePin> getOccurrencePins({FeedQuery? query});
+  Future<List<MapOccurrencePin>> getOccurrencePins({FeedQuery? query});
 }

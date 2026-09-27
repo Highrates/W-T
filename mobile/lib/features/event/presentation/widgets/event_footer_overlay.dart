@@ -18,6 +18,7 @@ class EventFooterOverlay extends StatelessWidget {
     required this.isJoinSubmitting,
     required this.routeChatEnabled,
     required this.onJoinTap,
+    required this.onChatTap,
     required this.onSuccessBannerChanged,
   });
 
@@ -26,6 +27,7 @@ class EventFooterOverlay extends StatelessWidget {
   final bool isJoinSubmitting;
   final bool routeChatEnabled;
   final VoidCallback onJoinTap;
+  final VoidCallback? onChatTap;
   final ValueChanged<bool> onSuccessBannerChanged;
 
   @override
@@ -44,13 +46,7 @@ class EventFooterOverlay extends StatelessWidget {
         onSuccessBannerChanged: onSuccessBannerChanged,
         eventFooterChat: EventFooterChatIcon(
           enabled: routeChatEnabled,
-          onTap: routeChatEnabled
-              ? () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Чат маршрута — скоро')),
-                  );
-                }
-              : null,
+          onTap: routeChatEnabled ? onChatTap : null,
         ),
         whenSlot: WalkWhenDisplay(
           isHidden: event.isWhenHidden,
