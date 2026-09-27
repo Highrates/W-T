@@ -24,7 +24,7 @@
 | Кэш / pub-sub | **Redis** | Сессии, лента, чат |
 | Файлы | **REG.RU S3** (S3-compatible) | Фото маршрутов, аватары |
 | Сервер | **REG.RU VPS** (Docker) | API, БД, Redis |
-| Платежи | **ЮKassa** | Webhook на бэкенд; в MVP — архитектура, деньги позже |
+| Платежи | **TBD** (не ЮKassa) | Монетизация позже; провайдер выберем отдельно |
 | Push | **FCM** + **APNs** | Через бэкенд |
 | Чат | **Свой** (WebSocket + Postgres + Redis) | Без внешнего SaaS |
 | Админка (web) | **React** + shadcn/ui | Модерация, пользователи, статистика |
@@ -49,7 +49,7 @@
   + PostGIS     (медиа)
       │
       ├── Яндекс: Геокодер, Геосаджест, Places (HTTP, только бэкенд)
-      └── ЮKassa (webhooks), SMS, email, FCM/APNs
+      └── Payments (TBD), SMS, email, FCM/APNs
 ```
 
 **Карты и гео:** см. [`docs/MAPS.md`](MAPS.md) — MapKit на клиенте (отображение), PostGIS + HTTP API Яндекса на сервере.
@@ -68,7 +68,7 @@
 | `Route.join_mode` | `auto` (до лимита) \| `approval` (подтверждение организатором) |
 | `ChatRoom` | Чат маршрута (участники + организатор) |
 | `Message` | Сообщения в комнате |
-| `Payment` | ЮKassa; подписка / поднятие — позже, монетизация пока бесплатна |
+| `Payment` | TBD; подписка / поднятие — позже, монетизация пока бесплатна |
 
 ---
 
@@ -92,7 +92,8 @@
 |------|--------|
 | **M1** | Auth, профиль, создание маршрута, Яндекс-точки, S3, лента, фильтры |
 | **M2** | Участие (auto + approval), push, карта маршрута, шаблоны/повторы |
-| **M3** | Чат, админка (минимум), ЮKassa (тест), TestFlight / internal testing |
+| **M3** | Чат, админка (минимум), TestFlight / internal testing |
+| **D (backend)** | Chat REST+WS, `GET /admin/audit-logs` — **в коде**; админ SPA — `admin/` (Vite + shadcn); платежи — TBD |
 
 ---
 
@@ -144,7 +145,7 @@ Walk&Talk/
 │   └── README.md
 ├── backend/                  # NestJS — geo API (M1)
 │   └── src/geo/              # suggest, reverse geocode
-└── admin/                    # React admin (позже)
+└── admin/                    # Vite + React + shadcn — модерация (M3)
 ```
 
 **Точка входа приложения:** `MainShellScreen` — нижняя glass-навигация и три основных таба. Отображаемое имя: **«Выходи»** (`MaterialApp.title`).
@@ -276,7 +277,7 @@ Walk&Talk/
 | Люди (таб) | P1 | **Реализовано** (mock) |
 | Профиль | P1 | **Реализовано** (mock) |
 | Мои маршруты / участия | P1 | Пункт меню; экран не реализован |
-| Чат маршрута | P1 | Иконка в footer event; экран чата не реализован |
+| Чат маршрута | P1 | **API + экран** (`/event/:id/chat`); organizer + accepted |
 | Фильтры (sheet) | P1 | Чипы ленты есть; полный sheet — заглушка |
 | Настройки, верификация | P2 | Пункты меню; экраны не реализованы |
 | UI-kit preview | dev | `UiKitPreviewScreen` |
